@@ -12,7 +12,16 @@ router.get('/', async (req, res, next) => {
 router.post('/', auth([1, 2]), async (req, res, next) => {
   try {
     const { topic_news, detail_news } = req.body;
-    await pool.query('INSERT INTO news (topic_news,detail_news,date_news) VALUES (?,?,NOW())', [topic_news, detail_news]);
+    const [[{ maxId }]] = await pool.query('SELECT COALESCE(MAX(id_news), 0) AS maxId FROM news');
+    const now = new Date(Date.now() + 7 * 60 * 60 * 1000); // UTC+7
+    const beYear = now.getUTCFullYear() + 543;
+    const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(now.getUTCDate()).padStart(2, '0');
+    const dateNews = `${beYear}-${month}-${day}`;
+    await pool.query(
+      'INSERT INTO news (id_news,topic_news,detail_news,date_news,id_user) VALUES (?,?,?,?,?)',
+      [maxId + 1, topic_news, detail_news, dateNews, req.user.iduser]
+    );
     res.status(201).json({ message: 'เพิ่มข่าวสำเร็จ' });
   } catch (err) { next(err); }
 });
