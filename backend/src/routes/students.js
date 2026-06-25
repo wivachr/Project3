@@ -27,7 +27,7 @@ router.get('/', auth([1, 2]), async (req, res, next) => {
        LEFT JOIN department d ON s.id_department=d.id_department
        LEFT JOIN division di ON s.id_division=di.id_division
        WHERE 1 ${searchSql}
-       ORDER BY s.id_student LIMIT ? OFFSET ?`,
+       ORDER BY s.id_student DESC LIMIT ? OFFSET ?`,
       [...searchParams(key), limit, offset]
     );
     res.json({ data: rows, total, page, limit });

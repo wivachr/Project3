@@ -155,6 +155,14 @@ Uploaded files go to `backend/uploads/`. The directory is served at two mount po
 
 PDF files from Project2 (`c:/xampp/htdocs/Project2/<year-semester>/`) were copied into `backend/uploads/<year-semester>/` preserving folder structure. ~1 748 files total. The `uploads/` folder is git-ignored.
 
+## Data quality notes
+
+- `teacher` list sorted `ORDER BY id_teacher DESC` (newest first)
+- `student` list sorted `ORDER BY id_student DESC` (newest first)
+- 12 empty teacher records (id 32–43, name/surname blank, unreferenced) were deleted — 31 teachers remain
+- 69 student records deleted: 55 with malformed IDs + empty names, 14 malformed duplicate IDs not referenced in `manipulator` — 1 959 students remain
+- `student` id_student `5506021623106` and `5506021632106` (นักศึกษาชื่อเดียวกัน สะกดต่างกัน) ถูกเก็บไว้ทั้งคู่ เพราะทั้งคู่มีข้อมูลใน `manipulator`
+
 ## Playwright (screenshots / testing)
 
 Playwright is installed globally. Use dynamic import to avoid ESM path issues on Windows:

@@ -20,7 +20,7 @@ router.get('/', auth([1, 2, 3]), async (req, res, next) => {
        LEFT JOIN academictitle at2 ON t.id_academictitle=at2.id_academictitle
        LEFT JOIN faculty f ON t.id_faculty=f.id_faculty
        LEFT JOIN department d ON t.id_department=d.id_department
-       WHERE 1 ${where} ORDER BY t.id_teacher LIMIT ? OFFSET ?`,
+       WHERE 1 ${where} ORDER BY t.id_teacher DESC LIMIT ? OFFSET ?`,
       [...params, limit, offset]
     );
     res.json({ data: rows, total, page, limit });
