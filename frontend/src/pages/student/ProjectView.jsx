@@ -323,7 +323,7 @@ export default function StudentProjectView() {
             {project.committee.map((c, i) => (
               <div key={i} className="px-4 py-2 text-sm">
                 <span className="text-gray-500 w-24 inline-block">{c.position}:</span>
-                {c.name_academictitle}{c.name_title}{c.name_teacher} {c.sname_teacher}
+                {c.name_academictitle}{c.name_teacher} {c.sname_teacher}
               </div>
             ))}
           </div>

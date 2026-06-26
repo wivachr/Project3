@@ -41,6 +41,17 @@ import TeacherExams from './pages/teacher/TeacherExams';
 import TeacherStatusReport from './pages/teacher/TeacherStatusReport';
 import TeacherProfile from './pages/teacher/TeacherProfile';
 import TeacherProjectList from './pages/teacher/TeacherProjectList';
+import TeacherFreeTime from './pages/teacher/TeacherFreeTime';
+
+import HeadOfDepartment from './pages/admin/HeadOfDepartment';
+import RaceList from './pages/officer/RaceList';
+import PrintExamForm from './pages/officer/PrintExamForm';
+import TeacherFreeTimeList from './pages/officer/TeacherFreeTimeList';
+import EvaluationForm from './pages/officer/EvaluationForm';
+import TorgorList from './pages/officer/TorgorList';
+import CaseStudyReport from './pages/officer/CaseStudyReport';
+import ExpiredProjectReport from './pages/officer/ExpiredProjectReport';
+import RegisterProject from './pages/student/RegisterProject';
 
 import ChangePassword from './pages/shared/ChangePassword';
 
@@ -51,6 +62,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          <Route path="/register-project" element={<RegisterProject />} />
           <Route path="/" element={<Login />} />
 
           {/* Admin */}
@@ -73,6 +85,8 @@ export default function App() {
             <Route path="rooms" element={<BasicData title="ห้องสอบ" endpoint="room" idKey="id_room" fields={[{ key:'name_room', label:'ชื่อห้อง', required:true }]} />} />
             <Route path="type-exams" element={<BasicData title="ประเภทการสอบ" endpoint="typeexam" idKey="id_typeexam" fields={[{ key:'name_typeexam', label:'ประเภทการสอบ', required:true }]} />} />
             <Route path="status-projects" element={<BasicData title="สถานะโครงการ" endpoint="statusproject" idKey="id_statusproject" fields={[{ key:'name_statusproject', label:'ชื่อสถานะ', required:true }]} />} />
+            <Route path="rights" element={<BasicData title="สิทธิ์ผู้ใช้" endpoint="right" idKey="id_right" fields={[{ key:'name_right', label:'ชื่อสิทธิ์', required:true }]} />} />
+            <Route path="head-of-department" element={<HeadOfDepartment />} />
           </Route>
 
           {/* Officer */}
@@ -99,6 +113,13 @@ export default function App() {
             <Route path="reports/fall-project" element={<FallProjectReport />} />
             <Route path="academic-year" element={<AcademicYear />} />
             <Route path="change-password" element={<ChangePassword />} />
+            <Route path="races" element={<RaceList />} />
+            <Route path="reports/print-exam" element={<PrintExamForm />} />
+            <Route path="reports/evaluation" element={<EvaluationForm />} />
+            <Route path="reports/case-study" element={<CaseStudyReport />} />
+            <Route path="reports/expired" element={<ExpiredProjectReport />} />
+            <Route path="teacher-freetime" element={<TeacherFreeTimeList />} />
+            <Route path="projects/torgor" element={<TorgorList />} />
           </Route>
 
           {/* Teacher */}
@@ -108,6 +129,7 @@ export default function App() {
             <Route path="projects" element={<TeacherProjectList />} />
             <Route path="exams" element={<TeacherExams />} />
             <Route path="reports/status" element={<TeacherStatusReport />} />
+            <Route path="free-time" element={<TeacherFreeTime />} />
             <Route path="profile" element={<TeacherProfile />} />
             <Route path="change-password" element={<ChangePassword />} />
           </Route>

@@ -95,3 +95,10 @@ body {
   font-size: 14px;
 }
 #root { min-height: 100vh; }
+
+@media print {
+  .print\:hidden { display: none !important; }
+  .print\:border-none { border: none !important; }
+  .print\:p-4 { padding: 1rem !important; }
+  .print\:break-after-page { break-after: page; }
+}

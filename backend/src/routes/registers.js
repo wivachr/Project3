@@ -41,6 +41,25 @@ router.get('/', auth([1, 2]), async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// POST /api/registers/import — import CSV (year,semester,id_student,id_subject,section)
+router.post('/import', auth([1, 2]), async (req, res, next) => {
+  try {
+    const { rows } = req.body; // array of {year_registration,semester_registration,id_student,id_subject,section}
+    if (!Array.isArray(rows) || !rows.length) return res.status(400).json({ message: 'ไม่มีข้อมูล' });
+    let inserted = 0, skipped = 0;
+    for (const r of rows) {
+      try {
+        await pool.query(
+          'INSERT IGNORE INTO registration (year_registration,semester_registration,id_student,id_subject,section) VALUES (?,?,?,?,?)',
+          [r[0], r[1], r[2], r[3], r[4]]
+        );
+        inserted++;
+      } catch { skipped++; }
+    }
+    res.json({ message: `นำเข้าสำเร็จ ${inserted} แถว, ข้าม ${skipped} แถว` });
+  } catch (err) { next(err); }
+});
+
 // DELETE /api/registers
 router.delete('/', auth([1, 2]), async (req, res, next) => {
   try {

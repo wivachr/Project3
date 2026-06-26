@@ -43,6 +43,53 @@ router.get('/me', auth([3]), async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /api/teachers/freetime-all — officer views all teacher freetimes
+router.get('/freetime-all', auth([1, 2]), async (req, res, next) => {
+  try {
+    const [teachers] = await pool.query(
+      `SELECT t.id_teacher, t.name_teacher, t.sname_teacher, at2.name_academictitle
+       FROM teacher t
+       LEFT JOIN academictitle at2 ON t.id_academictitle=at2.id_academictitle
+       WHERE t.name_teacher IS NOT NULL AND t.name_teacher != ''
+       ORDER BY t.name_teacher`
+    );
+    const [slots] = await pool.query('SELECT * FROM teacherfreetime');
+    const map = {};
+    for (const s of slots) {
+      if (!map[s.id_teacher]) map[s.id_teacher] = [];
+      map[s.id_teacher].push({ day: s.day_freetime, time: s.time_freetime });
+    }
+    res.json(teachers.map(t => ({ ...t, slots: map[t.id_teacher] || [] })));
+  } catch (err) { next(err); }
+});
+
+// GET /api/teachers/freetime — teacher's own freetime (Teacher only)
+router.get('/freetime', auth([3]), async (req, res, next) => {
+  try {
+    const [[me]] = await pool.query('SELECT id_teacher FROM teacher WHERE id_user=?', [req.user.iduser]);
+    if (!me) return res.json([]);
+    const [rows] = await pool.query(
+      'SELECT day_freetime, time_freetime FROM teacherfreetime WHERE id_teacher=?', [me.id_teacher]
+    );
+    res.json(rows);
+  } catch (err) { next(err); }
+});
+
+// PUT /api/teachers/freetime — replace all freetime entries for current teacher
+router.put('/freetime', auth([3]), async (req, res, next) => {
+  try {
+    const [[me]] = await pool.query('SELECT id_teacher FROM teacher WHERE id_user=?', [req.user.iduser]);
+    if (!me) return res.status(404).json({ message: 'ไม่พบข้อมูลอาจารย์' });
+    const { slots } = req.body; // array of { day, time }
+    await pool.query('DELETE FROM teacherfreetime WHERE id_teacher=?', [me.id_teacher]);
+    if (slots && slots.length > 0) {
+      const values = slots.map(s => [s.day, s.time, me.id_teacher]);
+      await pool.query('INSERT INTO teacherfreetime (day_freetime,time_freetime,id_teacher) VALUES ?', [values]);
+    }
+    res.json({ message: 'บันทึกเวลาว่างสำเร็จ' });
+  } catch (err) { next(err); }
+});
+
 // GET /api/teachers/:id
 router.get('/:id', auth([1, 2, 3]), async (req, res, next) => {
   try {

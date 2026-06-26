@@ -23,6 +23,8 @@ app.use('/api/users',     require('./routes/users'));
 app.use('/api/registers', require('./routes/registers'));
 app.use('/api/lookups',   require('./routes/lookups'));
 app.use('/api/reports',   require('./routes/reports'));
+app.use('/api/races',     require('./routes/races'));
+app.use('/api/headofdepartment', require('./routes/headofdepartment'));
 
 app.use(require('./middleware/errorHandler'));
 

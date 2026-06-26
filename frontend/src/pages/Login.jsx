@@ -113,6 +113,14 @@ export default function Login() {
                   {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
                 </Button>
               </form>
+              <div className="mt-3 text-center">
+                <button
+                  onClick={() => navigate('/register-project')}
+                  className="text-xs text-primary hover:underline"
+                >
+                  ลงทะเบียนโครงงานใหม่
+                </button>
+              </div>
             </CardContent>
           </Card>
         </div>

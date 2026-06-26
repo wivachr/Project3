@@ -17,8 +17,6 @@ Project3 คือการเขียนใหม่ (rewrite) ของระ
 | UI | Bootstrap/ตาราง HTML | shadcn/ui + Tailwind CSS |
 | ไฟล์ PDF | `Project2/<ปี-ภาค>/<รหัส>.pdf` | คัดลอกไปยัง `backend/uploads/<ปี-ภาค>/` |
 
-### ข้อมูลที่ใช้ร่วมกัน
-
 Project3 เชื่อมต่อฐานข้อมูล `projectinformationsystem` ตัวเดิม ไม่มีการเปลี่ยนแปลง schema — สามารถสลับใช้ทั้งสองระบบได้ในระหว่างการเปลี่ยนผ่าน
 
 ---
@@ -119,7 +117,8 @@ Project3/
 │   │   ├── config/       database.js
 │   │   ├── middleware/   auth.js, errorHandler.js
 │   │   ├── routes/       auth, students, teachers, projects,
-│   │   │                 exams, news, registers, lookups, reports
+│   │   │                 exams, news, registers, races,
+│   │   │                 headofdepartment, lookups, reports
 │   │   └── server.js
 │   ├── uploads/          ไฟล์ PDF ที่อัปโหลด
 │   └── .env
@@ -132,11 +131,24 @@ Project3/
         │   ├── Layout.jsx
         │   └── Table.jsx
         ├── pages/
-        │   ├── admin/
-        │   ├── officer/
-        │   ├── teacher/
-        │   ├── student/
-        │   └── shared/
+        │   ├── admin/    Dashboard, StudentList, TeacherList,
+        │   │             UserList, HeadOfDepartment, BasicData
+        │   ├── officer/  Dashboard, ProjectList, ExamList,
+        │   │             NewsList, RegisterList, PendingExam,
+        │   │             AssignCommittee, SaveResult, SubmitBook,
+        │   │             TorgorList, RaceList, AcademicYear,
+        │   │             ExamTableReport, ResultReport, StatusReport,
+        │   │             NoProjectReport, NoExamReport, FallProjectReport,
+        │   │             PrintExamForm, EvaluationForm,
+        │   │             CaseStudyReport, ExpiredProjectReport,
+        │   │             TeacherFreeTimeList
+        │   ├── teacher/  Dashboard, MyProjects, TeacherProjectList,
+        │   │             TeacherExams, TeacherFreeTime,
+        │   │             TeacherStatusReport, TeacherProfile
+        │   ├── student/  Dashboard, ProjectView, SubmitExam,
+        │   │             ExamHistory, EditHistory, UploadBook,
+        │   │             StudentProfile, RegisterProject (public)
+        │   └── shared/   ChangePassword
         ├── contexts/     AuthContext.jsx
         ├── services/     api.js (axios)
         └── lib/          utils.js (cn, fmtDate)
@@ -159,29 +171,70 @@ Project3/
 
 | สิทธิ์ | บทบาท | เข้าถึง |
 |---|---|---|
-| 1 | Admin | จัดการผู้ใช้ ข้อมูลพื้นฐาน |
-| 2 | เจ้าหน้าที่ | จัดการโครงการ การสอบ ข่าว ปีการศึกษา |
-| 3 | อาจารย์ | ดูโครงการในที่ปรึกษา ดูตารางสอบ |
+| 1 | Admin | จัดการผู้ใช้ ข้อมูลพื้นฐาน หัวหน้าภาควิชา |
+| 2 | เจ้าหน้าที่ | จัดการโครงการ การสอบ รายงาน ข่าว ปีการศึกษา |
+| 3 | อาจารย์ | ดูโครงการที่ปรึกษา ตารางสอบ ตารางเวลาว่าง |
 | 4 | นักศึกษา | ดูโครงการตัวเอง ส่งคำร้องสอบ อัปโหลด PDF |
 
 ---
 
 ## ฟีเจอร์หลัก
 
+### Admin
+- จัดการนักศึกษา (เพิ่ม/แก้ไข/ลบ/นำเข้า CSV)
+- จัดการอาจารย์ (เพิ่ม/แก้ไข/ลบ)
+- จัดการผู้ใช้งาน
+- ตั้งค่าหัวหน้าภาควิชา
+- ข้อมูลพื้นฐาน (คำนำหน้า, ตำแหน่งวิชาการ, คณะ, ภาควิชา, สาขา, หลักสูตร, วิชา, ห้องสอบ, ประเภทการสอบ, สถานะโครงการ, สิทธิ์ผู้ใช้)
+- ตั้งค่าปีการศึกษา
+
 ### เจ้าหน้าที่
 - รายชื่อนักศึกษา / อาจารย์ / ลงทะเบียน
-- รายการโครงการ (ค้นหา / กรอง)
-- รอสอบหัวข้อ / 60% / 100%
+- รายการโครงการ (ค้นหา / กรอง / แก้ไข / ยกเลิก)
+- รอสอบหัวข้อ / 60% / 100% (อนุมัติคำร้อง)
 - มอบหมายกรรมการ, กำหนดวันสอบ, บันทึกผลสอบ
 - จัดการการส่งปริญญานิพนธ์ฉบับสมบูรณ์
-- รายงาน: ตารางสอบ, ผลสอบ, สถานะโครงการ, นักศึกษาไม่มีหัวข้อ
+- **จัดการการส่ง ทก.01** (รับแบบฟอร์มหลังสอบหัวข้อผ่าน)
+- การแข่งขัน (เพิ่ม/แก้ไข/ลบ)
+- ตารางเวลาว่างของอาจารย์ทุกคน
+- รายงาน:
+  - ตารางสอบ / ผลการสอบ / สถานะโครงการ
+  - นักศึกษาที่ไม่มีหัวข้อ / โครงการค้างชำระ / สอบหัวข้อไม่ผ่าน
+  - **โครงการกรณีศึกษา** (กรองตามปี/ภาค)
+  - **โครงการค้างปี** (ค้างมากกว่า 2 ภาคเรียน)
+  - พิมพ์ใบยื่นสอบ / **ใบประเมินการสอบ** (3 ประเภท พร้อมเกณฑ์การให้คะแนน)
 - ข่าวประกาศ, ตั้งค่าปีการศึกษา
 
 ### อาจารย์
 - โครงการที่ปรึกษา, ตารางสอบ, รายงานสถานะ
+- **บันทึกตารางเวลาว่าง** (คาบ 1–12 วันจันทร์–ศุกร์)
+- แก้ไขโปรไฟล์
 
 ### นักศึกษา
-- ข้อมูลโครงการ, ส่งคำร้องสอบ, ประวัติการสอบ, อัปโหลดเล่มรายงาน PDF
+- **ลงทะเบียนโครงการใหม่** (หน้า public ไม่ต้อง login)
+- ข้อมูลโครงการ, สมาชิก, กรรมการ, อาจารย์ที่ปรึกษาร่วม
+- ส่งคำร้องสอบหัวข้อ / 60% / 100%
+- ประวัติการสอบ, ประวัติการแก้ไขโครงการ
+- อัปโหลดเล่มรายงาน PDF
+
+---
+
+## workflow สถานะโครงการ
+
+```
+ลงทะเบียน → [1] รอยื่นสอบหัวข้อ
+→ [2] ยื่นสอบหัวข้อแล้ว (นักศึกษายื่น)
+→ [3] ยื่นเรื่องสอบหัวข้อแล้ว (เจ้าหน้าที่อนุมัติ)
+→ [4] แต่งตั้งกรรมการแล้ว
+→ [5] จัดวันสอบหัวข้อแล้ว
+→ [15] สอบหัวข้อผ่านแล้ว
+→ [6] รับ ทก.01 แล้ว ← เจ้าหน้าที่กดรับ
+→ [7→8→9→10] สอบ 60% (ยื่น→อนุมัติ→จัดวัน→ผ่าน)
+→ [11→12→13→14] สอบ 100% (ยื่น→อนุมัติ→จัดวัน→ผ่าน)
+→ [16] โครงงานพิเศษเสร็จสิ้นสมบูรณ์
+
+ยกเลิก: status < 6 → [18] ถูกยกเลิก | status ≥ 6 → [17] ไม่ผ่าน
+```
 
 ---
 
@@ -194,6 +247,19 @@ Project3/
 - `ThaiDatePicker` จัดการแปลง พ.ศ. ↔ ค.ศ. สำหรับ `<input type="date">` อัตโนมัติ
 - Pool config มี `dateStrings: true` — ป้องกัน mysql2 แปลง DATE เป็น JS Date object แล้ว serialize เป็น UTC ทำให้วันเลื่อน (เช่น `2569-06-25` กลายเป็น `"2569-06-24T17:00:00.000Z"`)
 - เมื่อ INSERT วันที่จาก backend ให้คำนวณปี พ.ศ. และใช้ UTC+7: `new Date(Date.now() + 7*3600000)` แล้วอ่านด้วย `getUTCFullYear/Month/Date`
+
+---
+
+## ข้อควรระวัง: MyISAM Crash
+
+ตาราง `title` และ `academictitle` ใช้ engine MyISAM และเคย crash มาแล้ว REPAIR TABLE ทำให้ข้อมูลหาย ให้ restore ด้วย Node.js เท่านั้น:
+
+```js
+// ห้ามใช้ mysql.exe CLI — PowerShell encoding เสียหาย ภาษาไทยกลายเป็น "???"
+// ให้ใช้ Node.js + mysql2 pool เท่านั้น สำหรับ INSERT ข้อความภาษาไทย
+const pool = require('./src/config/database');
+await pool.query("INSERT INTO title VALUES (1, 'นาย')");
+```
 
 ---
 
@@ -400,6 +466,7 @@ pm2 restart project3-backend
 | Login ไม่ได้ | DB connection ล้มเหลว | ตรวจ `.env`, `mysql -u project3 -p` |
 | CORS error | domain ไม่ตรงใน server.js | แก้ `origin` ใน server.js แล้ว `pm2 restart` |
 | วันที่ผิด | Server timezone ไม่ใช่ UTC+7 | ไม่กระทบ เพราะ backend ใช้ `Date.now() + 7*3600000` แล้ว |
+| ชื่ออาจารย์ขึ้น "???" | `academictitle` table crash | REPAIR TABLE แล้ว restore ด้วย Node.js script |
 
 ---
 

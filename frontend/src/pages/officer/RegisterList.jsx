@@ -43,9 +43,35 @@ export default function RegisterList() {
     )},
   ];
 
+  const [importMsg, setImportMsg] = useState('');
+
+  const handleImport = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    e.target.value = '';
+    const text = await file.text();
+    const lines = text.split('\n').filter(l => l.trim());
+    const rows = lines.slice(1).map(l => l.split(',').map(c => c.trim().replace(/\r$/, '')));
+    if (!rows.length) { setImportMsg('ไม่พบข้อมูล'); return; }
+    try {
+      const res = await api.post('/registers/import', { rows });
+      setImportMsg(res.data.message);
+      load(1, '', year, semester);
+    } catch (e2) { setImportMsg(e2.response?.data?.message || 'เกิดข้อผิดพลาด'); }
+  };
+
   return (
     <div>
-      <h2 className="font-semibold text-xl mb-4 tracking-tight">รายการลงทะเบียน</h2>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-semibold text-xl tracking-tight">รายการลงทะเบียน</h2>
+        <div className="flex items-center gap-2">
+          {importMsg && <span className="text-xs text-emerald-600">{importMsg}</span>}
+          <label className="border border-input bg-background px-4 py-1.5 rounded-md text-sm hover:bg-accent transition-colors cursor-pointer">
+            นำเข้า CSV
+            <input type="file" accept=".txt,.csv" className="hidden" onChange={handleImport} />
+          </label>
+        </div>
+      </div>
       <div className="flex gap-2 mb-3 flex-wrap">
         <input className="flex h-9 w-28 min-w-0 shrink-0 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" placeholder="ปีการศึกษา" value={year} onChange={e => setYear(e.target.value)} />
         <select className="flex h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={semester} onChange={e => setSemester(e.target.value)}>

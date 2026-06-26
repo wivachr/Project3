@@ -14,7 +14,7 @@ export default function TeacherProfile() {
 
   const fields = [
     { label: 'รหัสอาจารย์', value: profile.id_teacher },
-    { label: 'ชื่อ-สกุล', value: `${profile.name_academictitle || ''}${profile.name_title || ''}${profile.name_teacher || ''} ${profile.sname_teacher || ''}`.trim() },
+    { label: 'ชื่อ-สกุล', value: `${profile.name_academictitle || ''}${profile.name_teacher || ''} ${profile.sname_teacher || ''}`.trim() },
     { label: 'คณะ', value: profile.name_faculty },
     { label: 'สาขาวิชา', value: profile.name_department },
     { label: 'อีเมล', value: profile.email_teacher },

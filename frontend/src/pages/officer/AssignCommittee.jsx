@@ -79,7 +79,7 @@ export default function AssignCommittee() {
               {committee.length === 0 && <p className="text-muted-foreground text-sm">ยังไม่มีกรรมการ</p>}
               {committee.map(c => (
                 <div key={c.id_committee} className="flex justify-between items-center text-sm border-b py-1">
-                  <span>{c.position}: {c.name_academictitle}{c.name_title}{c.name_teacher} {c.sname_teacher}</span>
+                  <span>{c.position}: {c.name_academictitle}{c.name_teacher} {c.sname_teacher}</span>
                   <button onClick={() => handleRemove(c.id_committee)} className="text-xs text-red-500 hover:underline ml-2">ลบ</button>
                 </div>
               ))}
@@ -89,7 +89,7 @@ export default function AssignCommittee() {
               <p className="text-sm font-semibold">เพิ่มกรรมการ</p>
               <select className="w-full border rounded px-2 py-1 text-sm" value={form.id_teacher} onChange={e => setForm(f => ({ ...f, id_teacher: e.target.value }))}>
                 <option value="">-- เลือกอาจารย์ --</option>
-                {teachers.map(t => <option key={t.id_teacher} value={t.id_teacher}>{t.name_academictitle}{t.name_title}{t.name_teacher} {t.sname_teacher}</option>)}
+                {teachers.map(t => <option key={t.id_teacher} value={t.id_teacher}>{t.name_academictitle}{t.name_teacher} {t.sname_teacher}</option>)}
               </select>
               <select className="w-full border rounded px-2 py-1 text-sm" value={form.position} onChange={e => setForm(f => ({ ...f, position: e.target.value }))}>
                 <option value="ที่ปรึกษา">ที่ปรึกษา</option>

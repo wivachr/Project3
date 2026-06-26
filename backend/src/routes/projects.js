@@ -1,7 +1,10 @@
 const router = require('express').Router();
+const crypto = require('crypto');
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
 const multer = require('multer');
+
+const md5 = (str) => crypto.createHash('md5').update(str).digest('hex');
 const path = require('path');
 
 const storage = multer.diskStorage({
@@ -12,7 +15,7 @@ const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
 const PROJECT_COLS = `
   p.*, sp.name_statusproject, s.name_subject,
-  GROUP_CONCAT(DISTINCT CONCAT(at2.name_academictitle,t2.name_title,t.name_teacher,' ',t.sname_teacher) ORDER BY c.position SEPARATOR ', ') AS advisors,
+  GROUP_CONCAT(DISTINCT CONCAT(at2.name_academictitle,t.name_teacher,' ',t.sname_teacher) ORDER BY c.position SEPARATOR ', ') AS advisors,
   GROUP_CONCAT(DISTINCT CONCAT(st.name_student,' ',st.sname_student) SEPARATOR ', ') AS members
 `;
 const PROJECT_JOINS = `
@@ -25,6 +28,95 @@ const PROJECT_JOINS = `
   LEFT JOIN manipulator m ON m.id_project=p.id_project
   LEFT JOIN student st ON m.id_student=st.id_student
 `;
+
+// POST /api/projects/register — public: student registers new project (creates user account)
+router.post('/register', async (req, res, next) => {
+  try {
+    const {
+      id_student, name_project, engname_project, casestudy_project, engcasestudy_project,
+      id_subject, year_project, semester_project, section_project,
+      address_project, email_project, tel, id_teacher, password
+    } = req.body;
+
+    if (!id_student || !name_project || !password) {
+      return res.status(400).json({ message: 'กรุณากรอกข้อมูลให้ครบ' });
+    }
+
+    // Current academic year
+    const [[ay]] = await pool.query('SELECT year, semester FROM academicyear LIMIT 1');
+
+    // Check student exists in registration for current year/semester
+    const [[reg]] = await pool.query(
+      'SELECT * FROM registration WHERE id_student=? AND year_registration=? AND semester_registration=? LIMIT 1',
+      [id_student, ay.year, ay.semester]
+    );
+    if (!reg) return res.status(400).json({ message: 'ไม่พบรหัสนักศึกษาในระบบลงทะเบียนภาคการศึกษาปัจจุบัน' });
+
+    // Check student doesn't already have an active project this year/semester
+    const [[existProj]] = await pool.query(
+      `SELECT p.id_project FROM project p JOIN manipulator m ON m.id_project=p.id_project
+       WHERE m.id_student=? AND p.year_project=? AND p.semester_project=?
+         AND p.id_statusproject NOT IN (0, 18) LIMIT 1`,
+      [id_student, ay.year, ay.semester]
+    );
+    if (existProj) return res.status(400).json({ message: 'นักศึกษานี้มีโครงการในปีการศึกษาปัจจุบันแล้ว' });
+
+    // Generate project ID: current BE year + 4-digit sequence
+    const now = new Date(Date.now() + 7 * 60 * 60 * 1000);
+    const beYearShort = String(now.getUTCFullYear() + 543).slice(-2);
+    const [[{ maxId }]] = await pool.query(
+      `SELECT COALESCE(MAX(id_project),0) AS maxId FROM project WHERE id_project LIKE ?`,
+      [`${beYearShort}%`]
+    );
+    const seq = String((maxId % 10000) + 1).padStart(4, '0');
+    const id_project = parseInt(`${beYearShort}${seq}`);
+
+    // Create user account (username = project id)
+    const username = String(id_project);
+    const [existing] = await pool.query('SELECT id_user FROM user WHERE username=?', [username]);
+    if (existing.length) return res.status(400).json({ message: 'รหัสโครงการซ้ำ กรุณาลองใหม่' });
+
+    const [userResult] = await pool.query(
+      "INSERT INTO user (username,password,name_user,sname_user,id_right,status_user) VALUES (?,?,?,?,'4','1')",
+      [username, md5(password), '', '']
+    );
+    const id_user = userResult.insertId;
+
+    // Create project
+    await pool.query(
+      `INSERT INTO project (id_project,id_user,id_subject,id_statusproject,name_project,engname_project,
+        casestudy_project,engcasestudy_project,address_project,email_project,year_project,semester_project,section_project)
+       VALUES (?,?,?,1,?,?,?,?,?,?,?,?,?)`,
+      [id_project, id_user, id_subject || reg.id_subject,
+       name_project, engname_project || '',
+       casestudy_project || '', engcasestudy_project || '',
+       address_project || '', email_project || '',
+       year_project || reg.year_registration, semester_project || reg.semester_registration,
+       section_project || reg.section]
+    );
+
+    // Add student to manipulator
+    const [[{ maxMani }]] = await pool.query('SELECT COALESCE(MAX(id_manipulator),0) AS maxMani FROM manipulator');
+    await pool.query(
+      'INSERT INTO manipulator (id_manipulator,id_student,id_project,tel_manipulator) VALUES (?,?,?,?)',
+      [maxMani + 1, id_student, id_project, tel || '']
+    );
+
+    // Add advisor to committee if provided
+    if (id_teacher) {
+      await pool.query(
+        'INSERT INTO committee (id_teacher,id_project,position) VALUES (?,?,?)',
+        [id_teacher, id_project, 'ที่ปรึกษา']
+      );
+    }
+
+    res.status(201).json({
+      message: 'ลงทะเบียนโครงงานสำเร็จ',
+      id_project,
+      username,
+    });
+  } catch (err) { next(err); }
+});
 
 // GET /api/projects?page=1&limit=20&key=&status=
 router.get('/', auth([1, 2, 3]), async (req, res, next) => {
@@ -368,6 +460,26 @@ router.post('/:id/submit-exam', auth([4]), async (req, res, next) => {
 });
 
 // GET /api/projects/book-list — projects with status 14 (สอบร้อยผ่านแล้ว) waiting for book submission
+// POST /api/projects/:id/cancel — officer/admin cancels project
+// POST /api/projects/:id/torgor — officer confirms ทก.01 receipt → status 6
+router.post('/:id/torgor', auth([1, 2]), async (req, res, next) => {
+  try {
+    await pool.query('UPDATE project SET id_statusproject=6 WHERE id_project=?', [req.params.id]);
+    res.json({ message: 'รับทก.01เรียบร้อยแล้ว' });
+  } catch (err) { next(err); }
+});
+
+router.post('/:id/cancel', auth([1, 2]), async (req, res, next) => {
+  try {
+    const [[proj]] = await pool.query('SELECT id_statusproject, id_user FROM project WHERE id_project=?', [req.params.id]);
+    if (!proj) return res.status(404).json({ message: 'ไม่พบโครงการ' });
+    const newStatus = proj.id_statusproject < 6 ? 18 : 17;
+    await pool.query('UPDATE project SET id_statusproject=? WHERE id_project=?', [newStatus, req.params.id]);
+    await pool.query('UPDATE user SET status_user=0 WHERE id_user=?', [proj.id_user]);
+    res.json({ message: 'ยกเลิกโครงการสำเร็จ' });
+  } catch (err) { next(err); }
+});
+
 // POST /api/projects/:id/confirm-book — officer confirms book received → status 16
 router.post('/:id/confirm-book', auth([1, 2]), async (req, res, next) => {
   try {

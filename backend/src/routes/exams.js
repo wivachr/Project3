@@ -47,14 +47,23 @@ router.get('/', auth([1, 2, 3]), async (req, res, next) => {
     const [rows] = await pool.query(
       `SELECT e.*, p.name_project, p.engname_project, te.name_typeexam,
               sp.name_statusproject, ae.date_assignexam, ae.time_assignexam,
-              ae.endtime_assignexam, ae.id_room, r.name_room
+              ae.endtime_assignexam, ae.id_room, r.name_room, p.id_statusproject,
+              GROUP_CONCAT(DISTINCT CONCAT(at2.name_academictitle,t.name_teacher,' ',t.sname_teacher) ORDER BY c.position SEPARATOR ', ') AS advisors,
+              GROUP_CONCAT(DISTINCT CONCAT(st.name_student,' ',st.sname_student) SEPARATOR ', ') AS members
        FROM exam e
        JOIN project p ON e.id_project=p.id_project
        JOIN typeexam te ON e.id_typeexam=te.id_typeexam
        JOIN statusproject sp ON e.id_statusproject=sp.id_statusproject
        LEFT JOIN assignexam ae ON ae.id_exam=e.id_exam
        LEFT JOIN room r ON ae.id_room=r.id_room
+       LEFT JOIN committee c ON c.id_project=p.id_project
+       LEFT JOIN teacher t ON c.id_teacher=t.id_teacher
+       LEFT JOIN title t2 ON t.id_title=t2.id_title
+       LEFT JOIN academictitle at2 ON t.id_academictitle=at2.id_academictitle
+       LEFT JOIN manipulator m ON m.id_project=p.id_project
+       LEFT JOIN student st ON m.id_student=st.id_student
        ${where}
+       GROUP BY e.id_exam
        ORDER BY e.date_submitexam DESC LIMIT ? OFFSET ?`,
       [...params, limit, offset]
     );

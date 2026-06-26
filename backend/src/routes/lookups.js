@@ -9,17 +9,43 @@ const table = (name, id, label) => async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+const nextId = async (name, idCol, type = 'number') => {
+  const [[row]] = await pool.query(`SELECT MAX(CAST(\`${idCol}\` AS UNSIGNED)) AS maxId FROM \`${name}\``);
+  const id = (Number(row?.maxId) || 0) + 1;
+  return type === 'string' ? String(id) : id;
+};
+
 router.get('/titles',         auth(), table('title',         'id_title',         'name_title'));
 router.get('/academic-titles',auth(), table('academictitle', 'id_academictitle', 'name_academictitle'));
 router.get('/faculties',      auth(), table('faculty',       'id_faculty',       'name_faculty'));
 router.get('/departments',    auth(), table('department',    'id_department',    'name_department'));
 router.get('/divisions',      auth(), table('division',      'id_division',      'name_division'));
-router.get('/curriculums',    auth(), table('curriculum',    'id_curr',          'name_curriculum'));
+router.get('/curriculums',    auth(), table('curriculum',    'id_curr',          'name_curr'));
 router.get('/subjects',       auth(), table('subject',       'id_subject',       'name_subject'));
 router.get('/rooms',          auth(), table('room',          'id_room',          'name_room'));
 router.get('/type-exams',     auth(), table('typeexam',      'id_typeexam',      'name_typeexam'));
 router.get('/status-projects',auth(), table('statusproject', 'id_statusproject', 'name_statusproject'));
 router.get('/rights',         auth([1]), table('right',      'id_right',         'name_right'));
+
+// Public lookups for registration form
+router.get('/subjects-public', async (req, res, next) => {
+  try {
+    const [rows] = await pool.query('SELECT id_subject, name_subject FROM subject ORDER BY id_subject');
+    res.json(rows);
+  } catch (err) { next(err); }
+});
+router.get('/teachers-public', async (req, res, next) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT t.id_teacher, t.name_teacher, t.sname_teacher, at2.name_academictitle
+       FROM teacher t
+       LEFT JOIN academictitle at2 ON t.id_academictitle=at2.id_academictitle
+       WHERE t.name_teacher IS NOT NULL AND t.name_teacher != ''
+       ORDER BY t.name_teacher`
+    );
+    res.json(rows);
+  } catch (err) { next(err); }
+});
 
 // GET /api/lookups/academic-year — public so login page and banner can read it
 router.get('/academic-year', async (req, res, next) => {
@@ -40,11 +66,16 @@ router.put('/academic-year', auth([1, 2]), async (req, res, next) => {
 
 // --- Admin CRUD for basic data tables ---
 
-const crudTable = (name, idCol, fields) => {
+const crudTable = (name, idCol, fields, options = {}) => {
   router.post(`/${name}`, auth([1]), async (req, res, next) => {
     try {
-      const vals = fields.map(f => req.body[f] ?? '');
-      await pool.query(`INSERT INTO \`${name}\` (${fields.join(',')}) VALUES (${fields.map(() => '?').join(',')})`, vals);
+      const columns = [idCol, ...fields];
+      const id = req.body[idCol] || await nextId(name, idCol, options.idType);
+      const vals = [id, ...fields.map(f => req.body[f] ?? '')];
+      await pool.query(
+        `INSERT INTO \`${name}\` (${columns.map(c => `\`${c}\``).join(',')}) VALUES (${columns.map(() => '?').join(',')})`,
+        vals
+      );
       res.status(201).json({ message: 'เพิ่มข้อมูลสำเร็จ' });
     } catch (err) { next(err); }
   });
@@ -74,6 +105,7 @@ const detailTable = (name, idCol) => {
   });
 };
 
+detailTable('right',        'id_right');
 detailTable('title',        'id_title');
 detailTable('academictitle','id_academictitle');
 detailTable('faculty',      'id_faculty');
@@ -85,12 +117,13 @@ detailTable('room',         'id_room');
 detailTable('typeexam',     'id_typeexam');
 detailTable('statusproject','id_statusproject');
 
+crudTable('right',        'id_right',        ['name_right']);
 crudTable('title',        'id_title',        ['name_title']);
 crudTable('academictitle','id_academictitle', ['name_academictitle', 'initials_academictitle']);
 crudTable('faculty',      'id_faculty',       ['name_faculty', 'initials_faculty']);
 crudTable('department',   'id_department',    ['name_department', 'initials_department', 'id_faculty']);
 crudTable('division',     'id_division',      ['name_division', 'initials_division', 'id_faculty', 'id_department']);
-crudTable('curriculum',   'id_curr',          ['name_curr']);
+crudTable('curriculum',   'id_curr',          ['name_curr'], { idType: 'string' });
 crudTable('subject',      'id_subject',       ['name_subject', 'credits']);
 crudTable('room',         'id_room',          ['name_room']);
 crudTable('typeexam',     'id_typeexam',      ['name_typeexam']);
