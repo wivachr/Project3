@@ -197,6 +197,212 @@ Project3/
 
 ---
 
+## การย้ายระบบไปยัง Ubuntu (Production)
+
+คู่มือนี้สำหรับ Ubuntu 22.04 LTS ขึ้นไป สถาปัตยกรรม: Nginx (reverse proxy) → Node.js backend (port 5000) + React build (static files)
+
+### 1. ติดตั้ง dependencies
+
+```bash
+sudo apt update && sudo apt upgrade -y
+
+# Node.js 20 LTS
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# MySQL Server
+sudo apt install -y mysql-server
+
+# Nginx
+sudo apt install -y nginx
+
+# PM2 (process manager)
+sudo npm install -g pm2
+```
+
+### 2. ตั้งค่า MySQL
+
+```bash
+sudo mysql_secure_installation   # ตั้ง root password, ลบ anonymous user
+
+sudo mysql -u root -p
+```
+
+```sql
+CREATE DATABASE projectinformationsystem CHARACTER SET utf8 COLLATE utf8_general_ci;
+CREATE USER 'project3'@'localhost' IDENTIFIED BY 'yourpassword';
+GRANT ALL PRIVILEGES ON projectinformationsystem.* TO 'project3'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+นำเข้า schema และข้อมูล (export จาก Windows ก่อนด้วย phpMyAdmin หรือ mysqldump):
+
+```bash
+mysql -u project3 -p projectinformationsystem < projectinformationsystem.sql
+```
+
+### 3. โคลนและติดตั้งโปรเจกต์
+
+```bash
+cd /var/www
+sudo git clone https://github.com/wivachr/Project3.git
+sudo chown -R $USER:$USER /var/www/Project3
+cd Project3
+
+# Backend dependencies
+cd backend && npm install --omit=dev && cd ..
+
+# Frontend dependencies + build
+cd frontend && npm install && npm run build && cd ..
+```
+
+### 4. ตั้งค่า Backend `.env`
+
+```bash
+nano /var/www/Project3/backend/.env
+```
+
+```env
+PORT=5000
+DB_HOST=127.0.0.1
+DB_USER=project3
+DB_PASSWORD=yourpassword
+DB_NAME=projectinformationsystem
+JWT_SECRET=change_this_to_a_long_random_string
+JWT_EXPIRES_IN=8h
+```
+
+### 5. คัดลอกไฟล์ PDF
+
+```bash
+# จาก Windows ส่งไฟล์ด้วย scp (รันบน Windows)
+scp -r "C:\xampp\htdocs\Project2\2553-1" user@server:/var/www/Project3/backend/uploads/
+scp -r "C:\xampp\htdocs\Project2\2554-1" user@server:/var/www/Project3/backend/uploads/
+# ... ทำซ้ำสำหรับทุกโฟลเดอร์ปี-ภาค
+
+# หรือใช้ rsync (เร็วกว่า ถ้ามีหลายพันไฟล์)
+rsync -avz /mnt/c/xampp/htdocs/Project2/ user@server:/var/www/Project3/backend/uploads/ \
+  --include="*/" --include="*.pdf" --exclude="*"
+```
+
+ตรวจสอบ permission:
+
+```bash
+sudo chown -R www-data:www-data /var/www/Project3/backend/uploads
+chmod -R 755 /var/www/Project3/backend/uploads
+```
+
+### 6. เปิด Backend ด้วย PM2
+
+```bash
+cd /var/www/Project3/backend
+pm2 start src/server.js --name project3-backend
+pm2 save
+pm2 startup   # ทำตาม command ที่ PM2 แสดง เพื่อให้ restart อัตโนมัติตอน boot
+```
+
+ตรวจสอบ:
+
+```bash
+pm2 status
+pm2 logs project3-backend
+curl http://127.0.0.1:5000/api/news   # ควรได้ JSON
+```
+
+### 7. ตั้งค่า Nginx
+
+แก้ไข CORS ใน `backend/src/server.js` ให้ตรงกับ domain จริงก่อน:
+
+```js
+// เปลี่ยนจาก
+origin: 'http://localhost:5173'
+// เป็น
+origin: 'https://yourdomain.com'
+```
+
+สร้าง Nginx config:
+
+```bash
+sudo nano /etc/nginx/sites-available/project3
+```
+
+```nginx
+server {
+    listen 80;
+    server_name yourdomain.com;   # หรือ IP ของ server
+
+    # Frontend — serve React build
+    root /var/www/Project3/frontend/dist;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;   # SPA fallback
+    }
+
+    # Backend API — proxy ไปยัง Node.js
+    location /api/ {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    # PDF uploads — proxy ไปยัง Node.js (รองรับทั้ง /uploads/ และ legacy paths)
+    location /uploads/ {
+        proxy_pass http://127.0.0.1:5000;
+    }
+
+    # ไฟล์ PDF legacy path (2553-1/531003.pdf)
+    location ~* ^/\d{4}-\d/ {
+        proxy_pass http://127.0.0.1:5000;
+    }
+
+    client_max_body_size 50M;   # สำหรับ upload PDF
+}
+```
+
+```bash
+sudo ln -s /etc/nginx/sites-available/project3 /etc/nginx/sites-enabled/
+sudo nginx -t   # ตรวจ syntax
+sudo systemctl reload nginx
+```
+
+### 8. HTTPS ด้วย Let's Encrypt (ถ้ามี domain)
+
+```bash
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d yourdomain.com
+```
+
+Certbot จะแก้ Nginx config ให้อัตโนมัติ และต่ออายุ certificate ทุก 90 วันเอง
+
+### 9. อัปเดตระบบในอนาคต
+
+```bash
+cd /var/www/Project3
+git pull
+
+# ถ้ามีการเปลี่ยน frontend
+cd frontend && npm install && npm run build && cd ..
+
+# ถ้ามีการเปลี่ยน backend
+cd backend && npm install --omit=dev && cd ..
+pm2 restart project3-backend
+```
+
+### ตรวจสอบปัญหาที่พบบ่อย
+
+| ปัญหา | สาเหตุ | แก้ไข |
+|---|---|---|
+| 502 Bad Gateway | PM2/backend ไม่ทำงาน | `pm2 status`, `pm2 logs project3-backend` |
+| PDF ไม่แสดง | Permission หรือ path ผิด | `ls /var/www/Project3/backend/uploads/`, ตรวจ Nginx location |
+| Login ไม่ได้ | DB connection ล้มเหลว | ตรวจ `.env`, `mysql -u project3 -p` |
+| CORS error | domain ไม่ตรงใน server.js | แก้ `origin` ใน server.js แล้ว `pm2 restart` |
+| วันที่ผิด | Server timezone ไม่ใช่ UTC+7 | ไม่กระทบ เพราะ backend ใช้ `Date.now() + 7*3600000` แล้ว |
+
+---
+
 ## License
 
 สงวนสิทธิ์ © มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ
