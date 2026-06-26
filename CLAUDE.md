@@ -29,6 +29,15 @@ CORS is locked to `http://localhost:5173`. If Vite picks a different port, updat
 - Host: `localhost`, User: `root`, Password: (empty)
 - Config: `backend/.env` and `backend/src/config/database.js`
 - Reference schema: `c:/xampp/htdocs/Project2/projectinformationsystem.sql`
+- Pool has `dateStrings: true` — mysql2 returns DATE/DATETIME columns as strings (`"2569-06-25"`) instead of JS Date objects; without this, dates serialize to UTC ISO strings and shift by the UTC+7 offset (e.g. `2569-06-25` → `"2569-06-24T17:00:00.000Z"`)
+
+### MyISAM tables without AUTO_INCREMENT
+
+Several tables use MyISAM engine with a manually managed PK (no `AUTO_INCREMENT`). Before INSERT, query `SELECT COALESCE(MAX(id_x), 0) AS maxId FROM table` and use `maxId + 1`. Affected tables include:
+
+| Table | PK column | Notes |
+|---|---|---|
+| `news` | `id_news` | Also requires `id_user` (NOT NULL); date must be BE year computed with UTC+7 |
 
 ## Auth / JWT
 
@@ -146,6 +155,7 @@ Admin accounts: check `user` table WHERE `id_right=1`.
 - `fmtDate(dateStr)` in utils.js — formats `yyyy-mm-dd` to `d/m/yyyy` **without** calling `toLocaleDateString` (DB stores Buddhist Era years; `toLocaleDateString('th-TH')` would double-convert to 3112)
 - `ThaiDatePicker` — `<input type="date">` wrapper that converts BE↔CE for the browser (subtract 543 in, add 543 out)
 - `frontend/index.html` has `lang="th"` so browser calendar shows Thai month names
+- **Do not use hardcoded Tailwind color classes** (`bg-blue-*`, `text-blue-*`, `border-blue-*`) — use shadcn CSS variable tokens (`bg-primary`, `text-primary`, `ring-primary`, etc.) so the theme is driven by `index.css` variables
 
 ## File uploads
 

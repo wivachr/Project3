@@ -192,6 +192,8 @@ Project3/
 - ห้ามใช้ `toLocaleDateString('th-TH')` — จะบวก 543 ซ้ำทำให้ปีกลายเป็น 3112
 - ใช้ `fmtDate(dateStr)` จาก `frontend/src/lib/utils.js` แทน
 - `ThaiDatePicker` จัดการแปลง พ.ศ. ↔ ค.ศ. สำหรับ `<input type="date">` อัตโนมัติ
+- Pool config มี `dateStrings: true` — ป้องกัน mysql2 แปลง DATE เป็น JS Date object แล้ว serialize เป็น UTC ทำให้วันเลื่อน (เช่น `2569-06-25` กลายเป็น `"2569-06-24T17:00:00.000Z"`)
+- เมื่อ INSERT วันที่จาก backend ให้คำนวณปี พ.ศ. และใช้ UTC+7: `new Date(Date.now() + 7*3600000)` แล้วอ่านด้วย `getUTCFullYear/Month/Date`
 
 ---
 
