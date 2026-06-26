@@ -28,28 +28,28 @@ export default function TeacherStatusReport() {
       </div>
       {loading ? <p className="text-muted-foreground text-sm">กำลังโหลด...</p> : (
         data.length === 0 ? <p className="text-muted-foreground text-sm">ไม่พบข้อมูล</p> : (
-          <div className="overflow-x-auto">
+          <div className="rounded-md border overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
-                <tr className="bg-blue-800 text-white">
-                  <th className="px-3 py-2 text-left">#</th>
-                  <th className="px-3 py-2 text-left">รหัสโครงการ</th>
+                <tr className="bg-primary text-primary-foreground">
+                  <th className="px-3 py-2 text-left w-10 whitespace-nowrap">#</th>
+                  <th className="px-3 py-2 text-left w-24 whitespace-nowrap">รหัสโครงการ</th>
                   <th className="px-3 py-2 text-left">ชื่อโครงการ</th>
-                  <th className="px-3 py-2 text-left">สมาชิก</th>
-                  <th className="px-3 py-2 text-left">ที่ปรึกษา</th>
-                  <th className="px-3 py-2 text-left">สถานะ</th>
+                  <th className="px-3 py-2 text-left w-36">สมาชิก</th>
+                  <th className="px-3 py-2 text-left w-52">ที่ปรึกษา</th>
+                  <th className="px-3 py-2 text-left w-44 whitespace-nowrap">สถานะ</th>
                 </tr>
               </thead>
               <tbody>
                 {data.map((p, i) => (
-                  <tr key={p.id_project} className={i % 2 === 0 ? 'bg-white' : 'bg-blue-50'}>
-                    <td className="px-3 py-2 border-b border-gray-100">{i + 1}</td>
-                    <td className="px-3 py-2 border-b border-gray-100">{p.id_project}</td>
-                    <td className="px-3 py-2 border-b border-gray-100">{p.name_project}</td>
-                    <td className="px-3 py-2 border-b border-gray-100 text-xs">{p.members || '-'}</td>
-                    <td className="px-3 py-2 border-b border-gray-100 text-xs">{p.advisors || '-'}</td>
-                    <td className="px-3 py-2 border-b border-gray-100">
-                      <span className="px-2 py-0.5 rounded text-xs bg-blue-50 text-blue-700">{p.name_statusproject}</span>
+                  <tr key={p.id_project} className={i % 2 === 0 ? '' : 'bg-muted/30'}>
+                    <td className="px-3 py-2 border-b border-border whitespace-nowrap">{i + 1}</td>
+                    <td className="px-3 py-2 border-b border-border whitespace-nowrap">{p.id_project}</td>
+                    <td className="px-3 py-2 border-b border-border">{p.name_project}</td>
+                    <td className="px-3 py-2 border-b border-border text-xs leading-snug">{p.members || '-'}</td>
+                    <td className="px-3 py-2 border-b border-border"><div className="text-xs leading-snug line-clamp-3">{p.advisors || '-'}</div></td>
+                    <td className="px-3 py-2 border-b border-border whitespace-nowrap">
+                      <span className="px-2 py-0.5 rounded text-xs bg-primary/10 text-primary">{p.name_statusproject}</span>
                     </td>
                   </tr>
                 ))}
