@@ -24,11 +24,11 @@ export default function TeacherProjectList() {
   const handleSearch = () => { setPage(1); setSearch(key); load(1, key); };
 
   const columns = [
-    { key: 'id_project', label: 'รหัส' },
+    { key: 'id_project', label: 'รหัส', className: 'w-24 whitespace-nowrap' },
     { key: 'name_project', label: 'ชื่อโครงการ' },
-    { key: 'members', label: 'นักศึกษา' },
-    { key: 'advisors', label: 'ที่ปรึกษา' },
-    { key: 'name_statusproject', label: 'สถานะ', render: r => <span className="px-2 py-0.5 rounded text-xs bg-blue-50 text-blue-700">{r.name_statusproject}</span> },
+    { key: 'members', label: 'นักศึกษา', className: 'w-40', render: r => r.members ? <span className="text-xs leading-snug line-clamp-3">{r.members}</span> : '-' },
+    { key: 'advisors', label: 'ที่ปรึกษา', className: 'w-56', render: r => r.advisors ? <span className="text-xs leading-snug line-clamp-3">{r.advisors}</span> : '-' },
+    { key: 'name_statusproject', label: 'สถานะ', className: 'w-44 whitespace-nowrap', render: r => <span className="px-2 py-0.5 rounded text-xs bg-primary/10 text-primary">{r.name_statusproject}</span> },
   ];
 
   return (

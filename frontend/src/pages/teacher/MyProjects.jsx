@@ -24,11 +24,11 @@ export default function MyProjects() {
   const handleSearch = () => { setPage(1); setSearch(key); load(1, key); };
 
   const columns = [
-    { key: 'id_project', label: 'รหัส' },
+    { key: 'id_project', label: 'รหัส', className: 'w-24 whitespace-nowrap' },
     { key: 'name_project', label: 'ชื่อโครงการ' },
-    { key: 'members', label: 'นักศึกษา' },
-    { key: 'year_project', label: 'ปี/ภาค', render: r => r.year_project ? `${r.year_project}/${r.semester_project}` : '-' },
-    { key: 'name_statusproject', label: 'สถานะ', render: r => <span className="px-2 py-0.5 rounded text-xs bg-blue-50 text-blue-700">{r.name_statusproject}</span> },
+    { key: 'members', label: 'นักศึกษา', className: 'w-40', render: r => r.members ? <span className="text-xs leading-snug line-clamp-3">{r.members}</span> : '-' },
+    { key: 'year_project', label: 'ปี/ภาค', className: 'w-20 whitespace-nowrap', render: r => r.year_project ? `${r.year_project}/${r.semester_project}` : '-' },
+    { key: 'name_statusproject', label: 'สถานะ', className: 'w-44 whitespace-nowrap', render: r => <span className="px-2 py-0.5 rounded text-xs bg-primary/10 text-primary">{r.name_statusproject}</span> },
   ];
 
   return (
