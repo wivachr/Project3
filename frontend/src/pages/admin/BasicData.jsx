@@ -75,7 +75,7 @@ export default function BasicData({ title, endpoint, idKey, fields }) {
                 <label className="text-sm w-40 shrink-0">{f.label}{f.required && <span className="text-red-500">*</span>}</label>
                 <input
                   type={f.type || 'text'}
-                  className="flex-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="flex h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   value={form[f.key] ?? ''}
                   onChange={e => setForm(v => ({ ...v, [f.key]: e.target.value }))}
                 />

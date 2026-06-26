@@ -33,9 +33,9 @@ export default function NewsList() {
       <h2 className="font-semibold text-xl mb-4 tracking-tight">จัดการข่าวประกาศ</h2>
       <div className="bg-white rounded shadow p-4 mb-4">
         <div className="space-y-2">
-          <input className="w-full flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" placeholder="หัวข้อข่าว"
+          <input className="flex h-9 w-full min-w-0 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" placeholder="หัวข้อข่าว"
             value={form.topic_news} onChange={e => setForm(f => ({ ...f, topic_news: e.target.value }))} />
-          <textarea className="w-full flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-24" placeholder="รายละเอียด"
+          <textarea className="flex h-24 w-full min-w-0 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" placeholder="รายละเอียด"
             value={form.detail_news} onChange={e => setForm(f => ({ ...f, detail_news: e.target.value }))} />
           <div className="flex gap-2">
             <button onClick={handleSave} className="bg-primary text-primary-foreground px-4 py-1.5 rounded-md text-sm hover:bg-primary/90 transition-colors">

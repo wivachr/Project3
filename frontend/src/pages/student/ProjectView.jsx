@@ -38,15 +38,15 @@ function ProjectForm({ project, subjects, academicYear, onSave, onCancel }) {
   const F = ({ label, children, required }) => (
     <div className="grid grid-cols-3 gap-2 items-start py-2 border-b last:border-0">
       <label className="text-sm text-gray-600 pt-1.5">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</label>
-      <div className="col-span-2">{children}</div>
+      <div className="col-span-2 min-w-0">{children}</div>
     </div>
   );
   const input = (k, placeholder = '') => (
-    <input className="w-full flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus:outline-none focus:border-blue-500"
+    <input className="flex h-9 w-full min-w-0 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus:outline-none focus:border-blue-500"
       value={form[k]} onChange={e => set(k, e.target.value)} placeholder={placeholder} />
   );
   const textarea = (k) => (
-    <textarea className="w-full flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus:outline-none focus:border-blue-500 h-16 resize-none"
+    <textarea className="flex h-16 w-full min-w-0 resize-none rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus:outline-none focus:border-blue-500"
       value={form[k]} onChange={e => set(k, e.target.value)} />
   );
 
@@ -54,7 +54,7 @@ function ProjectForm({ project, subjects, academicYear, onSave, onCancel }) {
     <div className="bg-card border rounded-lg p-4 max-w-2xl">
       <h3 className="font-bold text-blue-800 mb-3">{project ? 'แก้ไขข้อมูลโครงการ' : 'สร้างโครงการใหม่'}</h3>
       <F label="วิชา" required>
-        <select className="w-full flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={form.id_subject} onChange={e => set('id_subject', e.target.value)}>
+        <select className="flex h-9 w-full min-w-0 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={form.id_subject} onChange={e => set('id_subject', e.target.value)}>
           <option value="">-- เลือกวิชา --</option>
           {subjects.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
         </select>
@@ -67,7 +67,7 @@ function ProjectForm({ project, subjects, academicYear, onSave, onCancel }) {
       <F label="อีเมลกรณีศึกษา">{input('email_project', 'email@example.com')}</F>
       <F label="ปีการศึกษา">{input('year_project', 'เช่น 2567')}</F>
       <F label="ภาคเรียน">
-        <select className="w-full flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={form.semester_project} onChange={e => set('semester_project', e.target.value)}>
+        <select className="flex h-9 w-full min-w-0 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={form.semester_project} onChange={e => set('semester_project', e.target.value)}>
           <option value="1">1</option>
           <option value="2">2</option>
           <option value="3">3</option>
@@ -128,10 +128,10 @@ function MemberSection({ project, onUpdated }) {
       {adding && (
         <div className="bg-blue-50 rounded p-3 mb-3 space-y-2">
           <div className="flex gap-2">
-            <input className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring flex-1"
+            <input className="flex h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               placeholder="รหัสนักศึกษา (13 หลัก)" value={form.id_student}
               onChange={e => setForm(f => ({ ...f, id_student: e.target.value }))} />
-            <input className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring w-36"
+            <input className="flex h-9 w-36 min-w-0 shrink-0 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               placeholder="เบอร์โทร" value={form.tel_manipulator}
               onChange={e => setForm(f => ({ ...f, tel_manipulator: e.target.value }))} />
             <button onClick={handleAdd} className="bg-blue-700 text-white px-3 py-1.5 rounded text-sm">เพิ่ม</button>
@@ -205,14 +205,14 @@ function CoadvisorSection({ project }) {
       {adding && (
         <div className="bg-blue-50 rounded p-3 mb-3 space-y-2">
           <div className="flex gap-2 flex-wrap">
-            <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring w-28"
+            <select className="flex h-9 w-28 min-w-0 shrink-0 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               value={form.id_title} onChange={e => setForm(f => ({ ...f, id_title: e.target.value }))}>
               <option value="">-- คำนำหน้า --</option>
               {titles.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
             </select>
-            <input className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring flex-1" placeholder="ชื่อ"
+            <input className="flex h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" placeholder="ชื่อ"
               value={form.name_coadvisor} onChange={e => setForm(f => ({ ...f, name_coadvisor: e.target.value }))} />
-            <input className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring flex-1" placeholder="นามสกุล"
+            <input className="flex h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" placeholder="นามสกุล"
               value={form.sname_coadvisor} onChange={e => setForm(f => ({ ...f, sname_coadvisor: e.target.value }))} />
             <button onClick={handleAdd} className="bg-blue-700 text-white px-3 py-1.5 rounded text-sm">เพิ่ม</button>
           </div>

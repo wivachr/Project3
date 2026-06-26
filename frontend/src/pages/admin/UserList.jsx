@@ -105,19 +105,19 @@ export default function UserList() {
                 <div key={k} className="flex items-center gap-2">
                   <label className="text-sm w-44 shrink-0">{lbl}{req && <span className="text-red-500">*</span>}</label>
                   <input type={type || 'text'} disabled={disabled}
-                    className="flex-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:bg-muted disabled:cursor-not-allowed"
+                    className="flex h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:bg-muted disabled:cursor-not-allowed"
                     value={form[k]} onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))} />
                 </div>
               ))}
               <div className="flex items-center gap-2">
                 <label className="text-sm w-44 shrink-0">สิทธิ์</label>
-                <select className="flex-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={form.id_right} onChange={e => setForm(f => ({ ...f, id_right: e.target.value }))}>
+                <select className="flex h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={form.id_right} onChange={e => setForm(f => ({ ...f, id_right: e.target.value }))}>
                   {Object.entries(RIGHT_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-sm w-44 shrink-0">สถานะ</label>
-                <select className="flex-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={form.status_user} onChange={e => setForm(f => ({ ...f, status_user: e.target.value }))}>
+                <select className="flex h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={form.status_user} onChange={e => setForm(f => ({ ...f, status_user: e.target.value }))}>
                   <option value="1">ใช้งาน</option>
                   <option value="0">ระงับ</option>
                 </select>
@@ -136,7 +136,7 @@ export default function UserList() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm">
           <div className="bg-card border rounded-lg shadow-lg p-6 w-72">
             <h3 className="font-bold mb-3">รีเซ็ตรหัสผ่าน</h3>
-            <input type="password" placeholder="รหัสผ่านใหม่" className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm mb-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            <input type="password" placeholder="รหัสผ่านใหม่" className="mb-3 flex h-9 w-full min-w-0 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               value={newPwd} onChange={e => setNewPwd(e.target.value)} />
             <div className="flex gap-2">
               <button onClick={handleResetPassword} className="bg-primary text-primary-foreground px-4 py-1.5 rounded-md text-sm hover:bg-primary/90 transition-colors">ยืนยัน</button>

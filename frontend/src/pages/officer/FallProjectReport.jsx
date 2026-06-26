@@ -22,13 +22,13 @@ export default function FallProjectReport() {
     <div>
       <h2 className="font-semibold text-xl mb-4 tracking-tight">โครงงานที่สอบหัวข้อไม่ผ่าน</h2>
       <div className="flex gap-2 mb-4 flex-wrap">
-        <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={semester} onChange={e => setSemester(e.target.value)}>
+        <select className="flex h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={semester} onChange={e => setSemester(e.target.value)}>
           <option value="">ทุกภาค</option>
           <option value="1">1</option>
           <option value="2">2</option>
           <option value="3">3</option>
         </select>
-        <input className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring w-28" placeholder="ปีการศึกษา" value={year} onChange={e => setYear(e.target.value)} />
+        <input className="flex h-9 w-28 min-w-0 shrink-0 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" placeholder="ปีการศึกษา" value={year} onChange={e => setYear(e.target.value)} />
         <button onClick={load} className="bg-primary text-primary-foreground px-4 py-1.5 rounded-md text-sm hover:bg-primary/90 transition-colors">ค้นหา</button>
       </div>
 

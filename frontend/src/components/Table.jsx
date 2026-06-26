@@ -98,10 +98,10 @@ export function Pagination({ page, total, limit, onPage }) {
 export function SearchBar({ value, onChange, onSearch, placeholder = 'ค้นหา...' }) {
   return (
     <div className="flex gap-2 mb-4">
-      <div className="relative flex-1">
+      <div className="relative min-w-0 flex-1">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <input
-          className="flex h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="flex h-9 w-full min-w-0 rounded-md border border-input bg-background pl-9 pr-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           value={value}
           onChange={e => onChange(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && onSearch()}

@@ -47,14 +47,14 @@ export default function RegisterList() {
     <div>
       <h2 className="font-semibold text-xl mb-4 tracking-tight">รายการลงทะเบียน</h2>
       <div className="flex gap-2 mb-3 flex-wrap">
-        <input className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring w-28" placeholder="ปีการศึกษา" value={year} onChange={e => setYear(e.target.value)} />
-        <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={semester} onChange={e => setSemester(e.target.value)}>
+        <input className="flex h-9 w-28 min-w-0 shrink-0 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" placeholder="ปีการศึกษา" value={year} onChange={e => setYear(e.target.value)} />
+        <select className="flex h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={semester} onChange={e => setSemester(e.target.value)}>
           <option value="">ทุกภาค</option>
           <option value="1">1</option>
           <option value="2">2</option>
           <option value="3">3</option>
         </select>
-        <input className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring flex-1 min-w-40" placeholder="ค้นหารหัสนักศึกษา/ชื่อ/วิชา..." value={key} onChange={e => setKey(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch()} />
+        <input className="flex h-9 min-w-40 flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" placeholder="ค้นหารหัสนักศึกษา/ชื่อ/วิชา..." value={key} onChange={e => setKey(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch()} />
         <button onClick={handleSearch} className="bg-primary text-primary-foreground px-4 py-1.5 rounded-md text-sm hover:bg-primary/90 transition-colors">ค้นหา</button>
       </div>
       <Table columns={columns} data={data} loading={loading} />

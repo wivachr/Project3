@@ -68,7 +68,25 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-* { border-color: var(--border); }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  border-color: var(--border);
+}
+
+input,
+select,
+textarea {
+  min-width: 0;
+  max-width: 100%;
+}
+
+td,
+th {
+  overflow-wrap: anywhere;
+}
+
 body {
   margin: 0;
   background-color: var(--background);
