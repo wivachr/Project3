@@ -24,11 +24,11 @@ export default function TeacherList() {
   const handleSearch = () => { setPage(1); setSearch(key); load(1, key); };
 
   const columns = [
-    { key: 'id_teacher', label: 'รหัสอาจารย์' },
+    { key: 'id_teacher', label: 'รหัสอาจารย์', className: 'w-16 whitespace-nowrap' },
     { key: 'name_teacher', label: 'ชื่อ', render: r => `${r.name_academictitle || ''}${r.name_teacher} ${r.sname_teacher}` },
-    { key: 'name_faculty', label: 'คณะ' },
-    { key: 'name_department', label: 'ภาควิชา' },
-    { key: 'email_teacher', label: 'อีเมล' },
+    { key: 'name_faculty', label: 'คณะ', className: 'w-72 whitespace-nowrap' },
+    { key: 'name_department', label: 'ภาควิชา', className: 'w-40 whitespace-nowrap' },
+    { key: 'email_teacher', label: 'อีเมล', className: 'w-56' },
   ];
 
   return (

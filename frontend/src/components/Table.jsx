@@ -16,7 +16,7 @@ export function Table({ columns, data, loading }) {
         <thead>
           <tr className="border-b bg-muted/50">
             {columns.map(col => (
-              <th key={col.key} className="h-10 px-4 text-left align-middle font-medium text-muted-foreground whitespace-nowrap">
+              <th key={col.key} className={cn('h-10 px-4 text-left align-middle font-medium text-muted-foreground whitespace-nowrap', col.className)}>
                 {col.label}
               </th>
             ))}
@@ -33,7 +33,7 @@ export function Table({ columns, data, loading }) {
           {data.map((row, i) => (
             <tr key={i} className="border-b transition-colors hover:bg-muted/30 last:border-0">
               {columns.map(col => (
-                <td key={col.key} className="px-4 py-3 align-middle">
+                <td key={col.key} className={cn('px-4 py-3 align-middle', col.className)}>
                   {col.render ? col.render(row) : row[col.key]}
                 </td>
               ))}

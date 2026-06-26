@@ -24,12 +24,12 @@ export default function ProjectList() {
   const handleSearch = () => { setPage(1); setSearch(key); load(1, key); };
 
   const columns = [
-    { key: 'id_project', label: 'รหัสโครงการ' },
+    { key: 'id_project', label: 'รหัสโครงการ', className: 'w-28 whitespace-nowrap' },
     { key: 'name_project', label: 'ชื่อโครงการ' },
-    { key: 'year_project', label: 'ปี/ภาค', render: r => r.year_project ? `${r.year_project}/${r.semester_project}` : '-' },
-    { key: 'name_statusproject', label: 'สถานะ' },
-    { key: 'advisors', label: 'ที่ปรึกษา' },
-    { key: 'members', label: 'สมาชิก' },
+    { key: 'year_project', label: 'ปี/ภาค', className: 'w-20 whitespace-nowrap', render: r => r.year_project ? `${r.year_project}/${r.semester_project}` : '-' },
+    { key: 'name_statusproject', label: 'สถานะ', className: 'w-36 whitespace-nowrap' },
+    { key: 'advisors', label: 'ที่ปรึกษา', className: 'w-52', render: r => r.advisors ? <span className="text-xs leading-snug line-clamp-3">{r.advisors}</span> : '-' },
+    { key: 'members', label: 'สมาชิก', className: 'w-36', render: r => r.members ? <span className="text-xs leading-snug line-clamp-3">{r.members}</span> : '-' },
   ];
 
   return (

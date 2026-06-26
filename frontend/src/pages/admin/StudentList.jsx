@@ -24,10 +24,10 @@ export default function StudentList() {
   const handleSearch = () => { setPage(1); setSearch(key); load(1, key); };
 
   const columns = [
-    { key: 'id_student', label: 'รหัสนักศึกษา' },
+    { key: 'id_student', label: 'รหัสนักศึกษา', className: 'w-40 whitespace-nowrap' },
     { key: 'name_student', label: 'ชื่อ', render: r => r.name_student ? `${r.name_title || ''}${r.name_student} ${r.sname_student || ''}`.trim() : '-' },
-    { key: 'name_faculty', label: 'คณะ' },
-    { key: 'name_department', label: 'ภาควิชา' },
+    { key: 'name_faculty', label: 'คณะ', className: 'w-72 whitespace-nowrap' },
+    { key: 'name_department', label: 'ภาควิชา', className: 'w-40 whitespace-nowrap' },
   ];
 
   return (

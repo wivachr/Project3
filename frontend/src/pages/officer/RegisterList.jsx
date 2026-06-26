@@ -31,14 +31,14 @@ export default function RegisterList() {
   };
 
   const columns = [
-    { key: 'year_registration', label: 'ปีการศึกษา' },
-    { key: 'semester_registration', label: 'ภาคเรียน' },
-    { key: 'id_student', label: 'รหัสนักศึกษา' },
+    { key: 'year_registration', label: 'ปีการศึกษา', className: 'w-24 whitespace-nowrap' },
+    { key: 'semester_registration', label: 'ภาค', className: 'w-16 whitespace-nowrap' },
+    { key: 'id_student', label: 'รหัสนักศึกษา', className: 'w-40 whitespace-nowrap' },
     { key: 'name_student', label: 'ชื่อ', render: r => r.name_student ? `${r.name_title || ''}${r.name_student} ${r.sname_student || ''}`.trim() : '-' },
-    { key: 'id_subject', label: 'รหัสวิชา' },
-    { key: 'name_subject', label: 'ชื่อวิชา' },
-    { key: 'section', label: 'กลุ่ม' },
-    { key: 'action', label: '', render: r => (
+    { key: 'id_subject', label: 'รหัสวิชา', className: 'w-24 whitespace-nowrap' },
+    { key: 'name_subject', label: 'ชื่อวิชา', className: 'w-48' },
+    { key: 'section', label: 'กลุ่ม', className: 'w-16 whitespace-nowrap' },
+    { key: 'action', label: '', className: 'w-12', render: r => (
       <button onClick={() => handleDelete(r)} className="text-xs text-red-500 hover:underline">ลบ</button>
     )},
   ];
