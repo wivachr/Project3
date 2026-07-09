@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { Table, Pagination, SearchBar } from '../../components/Table';
 
-const TYPE_LABEL = { 1: 'สอบหัวข้อ', 2: 'สอบ 60%', 3: 'สอบ 100%' };
-const APPROVE_STATUS = { 1: 3, 2: 12, 3: 15 }; // status after approval per typeexam
+// id_typeexam ground truth: 1=หัวข้อ, 2=สอบร้อยเปอร์เซนต์(100%), 3=สอบหกสิบเปอร์เซนต์(60%)
+const TYPE_LABEL = { 1: 'สอบหัวข้อ', 2: 'สอบ 100%', 3: 'สอบ 60%' };
 
 export default function PendingExam({ typeexam }) {
   const [data, setData] = useState([]);
@@ -29,7 +29,7 @@ export default function PendingExam({ typeexam }) {
 
   const handleApprove = async (exam) => {
     if (!window.confirm(`ยืนยันรับเรื่อง${TYPE_LABEL[typeexam]}?`)) return;
-    await api.post(`/exams/${exam.id_exam}/approve`, { id_statusproject: APPROVE_STATUS[typeexam] || 3 });
+    await api.post(`/exams/${exam.id_exam}/approve`);
     load();
   };
 

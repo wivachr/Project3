@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import api from '../../services/api';
 
-const TYPE_LABELS = { 1: 'สอบหัวข้อ', 2: 'สอบ 60%', 3: 'สอบ 100%' };
+// id_typeexam ground truth (verified against the live `typeexam` table): 1=หัวข้อ, 2=สอบร้อยเปอร์เซนต์(100%), 3=สอบหกสิบเปอร์เซนต์(60%)
+const TYPE_LABELS = { 1: 'สอบหัวข้อ', 2: 'สอบ 100%', 3: 'สอบ 60%' };
 
 const CRITERIA_TITLE = [
   { label: 'ความเหมาะสมของหัวข้อโครงการ', score: 20 },
@@ -23,57 +24,73 @@ const CRITERIA_100 = [
   { label: 'การนำเสนอและการตอบคำถาม', score: 20 },
 ];
 
+// External co-advisor's 10-item satisfaction survey (report/evaluationform4.php in Project2) --
+// only used for the 100%-exam type, and only when the project has a co-advisor.
+const COADVISOR_ITEMS = [
+  'โครงงานพิเศษที่จัดทำขึ้น ได้ตรงตามความต้องการของหน่วยงาน',
+  'วิธีการออกแบบ หรือรูปแบบโครงงานพิเศษที่จัดทำขึ้นมีความเหมาะสมกับการนำไปใช้ในงาน',
+  'ความสม่ำเสมอในการติดต่อประสานงานของนักศึกษาผู้จัดทำโครงงานพิเศษกับหน่วยงาน',
+  'กิริยามารยาทของนักศึกษาในการติดต่อประสานงานกับหน่วยงาน',
+  'นักศึกษาสามารถจัดทำโครงงานให้แล้วเสร็จตามระยะเวลาที่กำหนด',
+  'มีการทดสอบ การติดตั้งระบบโครงงานพิเศษให้แก่หน่วยงานซึ่งได้นำไปใช้งานจริง',
+  'มีการจัดทำคู่มือประกอบการใช้งานหรือจัดฝึกอบรมการใช้งานให้กับหน่วยงาน',
+  'ความง่ายในการใช้งานของโครงงานพิเศษที่จัดทำให้แก่หน่วยงาน',
+  'การนำเสนอและการตอบข้อซักถามในการสอบโครงงานพิเศษปริญญานิพนธ์',
+  'ความพึงพอใจในภาพรวมของโครงงานพิเศษที่จัดทำให้แก่หน่วยงาน',
+];
+const COADVISOR_SCALES = ['ดีมาก', 'ดี', 'ปานกลาง', 'พอใช้', 'ต้องปรับปรุง'];
+
 function getCriteria(type) {
   if (type === 1) return CRITERIA_TITLE;
-  if (type === 2) return CRITERIA_60;
+  if (type === 3) return CRITERIA_60;
   return CRITERIA_100;
 }
 
-function PrintPage({ project, head, type }) {
-  const advisor = project.committee?.find(c => c.position === 'ที่ปรึกษา');
-  const chairman = project.committee?.find(c => c.position === 'ประธาน');
-  const members = project.committee?.filter(c => c.position === 'กรรมการ') || [];
-  const criteria = getCriteria(type);
-
+function ProjectHeader({ project }) {
   return (
-    <div className="print:p-4 p-8 max-w-3xl mx-auto text-sm font-['Sarabun',sans-serif]">
+    <table className="w-full mb-3 text-sm">
+      <tbody>
+        <tr>
+          <td className="w-32 text-gray-600">รหัสโครงการ</td>
+          <td className="font-medium">{project.id_project}</td>
+          <td className="w-20 text-gray-600">ปีการศึกษา</td>
+          <td>{project.year_project}/{project.semester_project}</td>
+        </tr>
+        <tr>
+          <td className="text-gray-600 align-top">ชื่อโครงการ</td>
+          <td colSpan={3} className="font-medium">{project.name_project}</td>
+        </tr>
+        {project.engname_project && (
+          <tr>
+            <td className="text-gray-600"></td>
+            <td colSpan={3} className="italic text-gray-700">{project.engname_project}</td>
+          </tr>
+        )}
+        <tr>
+          <td className="text-gray-600 align-top">นักศึกษา</td>
+          <td colSpan={3}>
+            {project.members?.map((m, i) => (
+              <span key={i}>{m.name_title}{m.name_student} {m.sname_student}{i < project.members.length - 1 ? ', ' : ''}</span>
+            ))}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  );
+}
+
+// One printable page per reviewer -- only that reviewer's name appears in the signature line,
+// matching Project2's report/big*.php iframe fan-out (one form copy per grader).
+function ReviewerPage({ project, type, reviewer }) {
+  const criteria = getCriteria(type);
+  return (
+    <div className="print:p-4 p-8 max-w-3xl mx-auto text-sm font-['Sarabun',sans-serif] break-after-page">
       <div className="text-center mb-4">
         <p className="font-bold text-base">แบบประเมินการสอบ{TYPE_LABELS[type]}</p>
         <p className="text-xs text-gray-500">ภาควิชาวิทยาการคอมพิวเตอร์</p>
       </div>
 
-      <table className="w-full mb-3 text-sm">
-        <tbody>
-          <tr>
-            <td className="w-32 text-gray-600">รหัสโครงการ</td>
-            <td className="font-medium">{project.id_project}</td>
-            <td className="w-20 text-gray-600">ปีการศึกษา</td>
-            <td>{project.year_project}/{project.semester_project}</td>
-          </tr>
-          <tr>
-            <td className="text-gray-600 align-top">ชื่อโครงการ</td>
-            <td colSpan={3} className="font-medium">{project.name_project}</td>
-          </tr>
-          {project.engname_project && (
-            <tr>
-              <td className="text-gray-600"></td>
-              <td colSpan={3} className="italic text-gray-700">{project.engname_project}</td>
-            </tr>
-          )}
-          <tr>
-            <td className="text-gray-600 align-top">นักศึกษา</td>
-            <td colSpan={3}>
-              {project.members?.map((m, i) => (
-                <span key={i}>{m.name_title}{m.name_student} {m.sname_student}{i < project.members.length - 1 ? ', ' : ''}</span>
-              ))}
-            </td>
-          </tr>
-          <tr>
-            <td className="text-gray-600">อาจารย์ที่ปรึกษา</td>
-            <td colSpan={3}>{advisor ? `${advisor.name_academictitle || ''}${advisor.name_teacher} ${advisor.sname_teacher}` : '-'}</td>
-          </tr>
-        </tbody>
-      </table>
+      <ProjectHeader project={project} />
 
       <table className="w-full border-collapse border text-sm mb-4">
         <thead>
@@ -114,37 +131,64 @@ function PrintPage({ project, head, type }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mt-6">
-        {chairman && (
-          <div className="text-center">
-            <div className="border-b border-gray-400 mb-1 mt-8"></div>
-            <p>{chairman.name_academictitle || ''}{chairman.name_teacher} {chairman.sname_teacher}</p>
-            <p className="text-xs text-gray-500">ประธานกรรมการ</p>
-          </div>
-        )}
-        {members.map((m, i) => (
-          <div key={i} className="text-center">
-            <div className="border-b border-gray-400 mb-1 mt-8"></div>
-            <p>{m.name_academictitle || ''}{m.name_teacher} {m.sname_teacher}</p>
-            <p className="text-xs text-gray-500">กรรมการ</p>
-          </div>
-        ))}
-        {advisor && (
-          <div className="text-center">
-            <div className="border-b border-gray-400 mb-1 mt-8"></div>
-            <p>{advisor.name_academictitle || ''}{advisor.name_teacher} {advisor.sname_teacher}</p>
-            <p className="text-xs text-gray-500">ที่ปรึกษา</p>
-          </div>
-        )}
+      <div className="text-center mt-8 max-w-xs mx-auto">
+        <div className="border-b border-gray-400 mb-1 mt-8"></div>
+        <p>{reviewer.name_academictitle || reviewer.name_title || ''}{reviewer.name_teacher || reviewer.name_coadvisor} {reviewer.sname_teacher || reviewer.sname_coadvisor}</p>
+        <p className="text-xs text-gray-500">{reviewer.position}</p>
+      </div>
+    </div>
+  );
+}
+
+// External co-advisor's dedicated satisfaction survey -- only shown for 100%-exam projects that
+// have a co-advisor (report/evaluationform4.php in Project2).
+function CoadvisorPage({ project, coadvisor }) {
+  return (
+    <div className="print:p-4 p-8 max-w-3xl mx-auto text-sm font-['Sarabun',sans-serif] break-after-page">
+      <div className="text-center mb-4">
+        <p className="font-bold text-base">แบบสอบถามสำหรับวิชาโครงงานพิเศษ</p>
+        <p className="text-xs text-gray-500">ภาควิชาวิทยาการคอมพิวเตอร์</p>
       </div>
 
-      {head && (
-        <div className="text-center mt-6 max-w-xs mx-auto">
-          <div className="border-b border-gray-400 mb-1 mt-8"></div>
-          <p>{head.name_academictitle || ''}{head.name_teacher} {head.sname_teacher}</p>
-          <p className="text-xs text-gray-500">หัวหน้าภาควิชา</p>
-        </div>
-      )}
+      <ProjectHeader project={project} />
+
+      <p className="mb-2"><strong>คำชี้แจง</strong> โปรดทำเครื่องหมาย ✓ ลงในช่องที่เห็นว่าเหมาะสม</p>
+      <table className="w-full border-collapse border text-sm mb-4">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="border px-2 py-1 text-left w-2/5">รายการ</th>
+            {COADVISOR_SCALES.map(s => <th key={s} className="border px-1 py-1 text-center text-xs">{s}</th>)}
+            <th className="border px-2 py-1 text-center">หมายเหตุ</th>
+          </tr>
+        </thead>
+        <tbody>
+          {COADVISOR_ITEMS.map((item, i) => (
+            <tr key={i}>
+              <td className="border px-2 py-1">{i + 1}. {item}</td>
+              {COADVISOR_SCALES.map(s => <td key={s} className="border px-1 py-1 text-center">&nbsp;</td>)}
+              <td className="border px-2 py-1">&nbsp;</td>
+            </tr>
+          ))}
+          <tr className="bg-gray-50 font-medium">
+            <td className="border px-2 py-1 text-center">รวม</td>
+            {COADVISOR_SCALES.map(s => <td key={s} className="border px-1 py-1">&nbsp;</td>)}
+            <td className="border px-2 py-1">&nbsp;</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table className="w-full text-sm mt-8">
+        <tbody>
+          <tr>
+            <td className="w-1/2 align-top">วันที่ …………/…………/…………</td>
+            <td className="w-1/2 text-center align-top">
+              ลงชื่อ …………………………………………………………………………<br />
+              ( {coadvisor.name_title || ''}{coadvisor.name_coadvisor} {coadvisor.sname_coadvisor} )<br />
+              ที่ปรึกษาร่วม
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -154,12 +198,7 @@ export default function EvaluationForm() {
   const [key, setKey] = useState('');
   const [projects, setProjects] = useState([]);
   const [selected, setSelected] = useState(null);
-  const [head, setHead] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    api.get('/headofdepartment').then(r => setHead(r.data));
-  }, []);
 
   const handleSearch = async () => {
     if (!key.trim()) return;
@@ -176,6 +215,19 @@ export default function EvaluationForm() {
     setSelected(res.data);
   };
 
+  const chairman = selected?.committee?.find(c => c.position === 'ประธาน');
+  const members = selected?.committee?.filter(c => c.position === 'กรรมการ') || [];
+  const advisor = selected?.committee?.find(c => c.position === 'ที่ปรึกษา');
+  const reviewers = selected
+    ? [
+        ...(chairman ? [{ ...chairman, position: 'ประธานกรรมการ' }] : []),
+        ...members.map(m => ({ ...m, position: 'กรรมการ' })),
+        ...(advisor ? [{ ...advisor, position: 'ที่ปรึกษา' }] : []),
+      ]
+    : [];
+  const coadvisor = selected?.coadvisors?.[0];
+  const showCoadvisorSurvey = type === 2 && !!coadvisor; // 100%-exam only, matching evaluationform4.php gating
+
   return (
     <div>
       <div className="print:hidden mb-6 space-y-3">
@@ -183,7 +235,7 @@ export default function EvaluationForm() {
 
         <div className="flex items-center gap-3">
           <label className="text-sm">ประเภทการสอบ:</label>
-          {[1, 2, 3].map(t => (
+          {[1, 3, 2].map(t => (
             <label key={t} className="flex items-center gap-1 text-sm cursor-pointer">
               <input type="radio" name="type" checked={type === t} onChange={() => { setType(t); setSelected(null); }} />
               {TYPE_LABELS[t]}
@@ -222,13 +274,16 @@ export default function EvaluationForm() {
             <button onClick={() => setSelected(null)} className="text-xs text-muted-foreground hover:underline">เปลี่ยน</button>
             <button onClick={() => window.print()}
               className="bg-primary text-primary-foreground px-4 py-1.5 rounded text-sm hover:bg-primary/90 ml-4">
-              พิมพ์
+              พิมพ์ ({reviewers.length + (showCoadvisorSurvey ? 1 : 0)} ใบ)
             </button>
           </div>
         )}
       </div>
 
-      {selected && <PrintPage project={selected} head={head} type={type} />}
+      {selected && reviewers.map((r, i) => (
+        <ReviewerPage key={i} project={selected} type={type} reviewer={r} />
+      ))}
+      {selected && showCoadvisorSurvey && <CoadvisorPage project={selected} coadvisor={coadvisor} />}
       {!selected && <p className="text-muted-foreground text-sm print:hidden">ค้นหาและเลือกโครงการเพื่อแสดงใบประเมิน</p>}
     </div>
   );

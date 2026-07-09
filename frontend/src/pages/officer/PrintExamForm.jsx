@@ -30,8 +30,8 @@ export default function PrintExamForm() {
           onChange={e => setTypeexam(e.target.value)}
         >
           <option value="1">สอบหัวข้อ</option>
-          <option value="2">สอบ 60%</option>
-          <option value="3">สอบ 100%</option>
+          <option value="3">สอบ 60%</option>
+          <option value="2">สอบ 100%</option>
         </select>
         <button onClick={() => window.print()} className="bg-primary text-primary-foreground px-4 py-1.5 rounded-md text-sm hover:bg-primary/90 transition-colors">
           พิมพ์

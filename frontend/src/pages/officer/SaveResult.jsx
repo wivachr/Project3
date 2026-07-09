@@ -3,6 +3,19 @@ import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { Table, Pagination, SearchBar } from '../../components/Table';
 
+// Outcomes available per exam type (id_typeexam ground truth: 1=หัวข้อ, 2=100%, 3=60%).
+// 100%-exam has a soft fail (0, may resubmit within the semester) distinct from a hard/final
+// fail (3, "ไม่ผ่าน(F)"); title and 60% exams only have a single fail outcome.
+const OUTCOMES = {
+  1: [{ value: 1, label: 'ผ่าน' }, { value: 0, label: 'ไม่ผ่าน' }],
+  3: [{ value: 1, label: 'ผ่าน' }, { value: 0, label: 'ไม่ผ่าน' }],
+  2: [
+    { value: 1, label: 'ผ่าน' },
+    { value: 0, label: 'ไม่ผ่าน (ยื่นสอบใหม่ภายในภาคการศึกษา)' },
+    { value: 3, label: 'ไม่ผ่าน (F)' },
+  ],
+};
+
 export default function SaveResult() {
   const [data, setData] = useState([]);
   const [total, setTotal] = useState(0);
@@ -11,8 +24,7 @@ export default function SaveResult() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState(null);
-  const [form, setForm] = useState({ id_statusproject: '', comment_exam: '' });
-  const [statuses, setStatuses] = useState([]);
+  const [form, setForm] = useState({ resultexam: '', comment_exam: '' });
 
   const load = async (p = page, k = search) => {
     setLoading(true);
@@ -23,18 +35,18 @@ export default function SaveResult() {
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); api.get('/lookups/status-projects').then(r => setStatuses(r.data)); }, []);
+  useEffect(() => { load(); }, []);
   useEffect(() => { load(); }, [page]);
 
   const handleSearch = () => { setPage(1); setSearch(key); load(1, key); };
 
   const openModal = (exam) => {
     setModal(exam);
-    setForm({ id_statusproject: exam.id_statusproject || '', comment_exam: exam.comment_exam || '' });
+    setForm({ resultexam: '', comment_exam: exam.comment_exam || '' });
   };
 
   const handleSave = async () => {
-    if (!form.id_statusproject) return;
+    if (form.resultexam === '') return;
     await api.post(`/exams/${modal.id_exam}/result`, form);
     setModal(null);
     load();
@@ -73,11 +85,11 @@ export default function SaveResult() {
             <p className="text-sm mb-3">{modal.name_project} — {modal.name_typeexam}</p>
             <div className="space-y-2">
               <div>
-                <label className="text-sm">ผลการสอบ (สถานะ)</label>
-                <select className="w-full border rounded px-2 py-1 text-sm mt-1" value={form.id_statusproject}
-                  onChange={e => setForm(f => ({ ...f, id_statusproject: e.target.value }))}>
+                <label className="text-sm">ผลการสอบ</label>
+                <select className="w-full border rounded px-2 py-1 text-sm mt-1" value={form.resultexam}
+                  onChange={e => setForm(f => ({ ...f, resultexam: e.target.value }))}>
                   <option value="">-- เลือกผลการสอบ --</option>
-                  {statuses.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                  {(OUTCOMES[modal.id_typeexam] || []).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
               <div>
@@ -87,7 +99,7 @@ export default function SaveResult() {
               </div>
             </div>
             <div className="flex gap-2 mt-4">
-              <button onClick={handleSave} disabled={!form.id_statusproject} className="bg-primary text-primary-foreground px-4 py-1.5 rounded-md text-sm hover:bg-primary/90 transition-colors disabled:opacity-50">บันทึก</button>
+              <button onClick={handleSave} disabled={form.resultexam === ''} className="bg-primary text-primary-foreground px-4 py-1.5 rounded-md text-sm hover:bg-primary/90 transition-colors disabled:opacity-50">บันทึก</button>
               <button onClick={() => setModal(null)} className="border border-input bg-background px-4 py-1.5 rounded-md text-sm hover:bg-accent transition-colors">ยกเลิก</button>
             </div>
           </div>

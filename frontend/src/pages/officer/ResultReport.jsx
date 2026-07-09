@@ -30,8 +30,8 @@ export default function ResultReport() {
         <select className="flex h-9 w-full min-w-0 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={typeexam} onChange={e => setTypeexam(e.target.value)}>
           <option value="">ทุกประเภทสอบ</option>
           <option value="1">สอบหัวข้อ</option>
-          <option value="2">สอบ 60%</option>
-          <option value="3">สอบ 100%</option>
+          <option value="3">สอบ 60%</option>
+          <option value="2">สอบ 100%</option>
         </select>
         <button onClick={load} className="bg-primary text-primary-foreground px-4 py-1.5 rounded-md text-sm hover:bg-primary/90 transition-colors">แสดงรายงาน</button>
       </div>

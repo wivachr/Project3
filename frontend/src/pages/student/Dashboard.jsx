@@ -4,7 +4,6 @@ import Layout from '../../components/Layout';
 const MENU = [
   { label: 'ข้อมูลโครงการ', path: '/student/project' },
   { label: 'ส่งสอบหัวข้อ', path: '/student/submit-title' },
-  { label: 'ส่งสอบ 60%', path: '/student/submit-60' },
   { label: 'ส่งสอบ 100%', path: '/student/submit-100' },
   { label: 'ประวัติการสอบ', path: '/student/exam-history' },
   { label: 'ประวัติการแก้ไข', path: '/student/edit-history' },

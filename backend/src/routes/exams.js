@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
+const { APPROVE_STATUS, ASSIGN_STATUS, EXAM_PENDING, EXAM_APPROVED, resolveResult } = require('../config/examStatus');
 
 // GET /api/exams/my — student's own exam history
 router.get('/my', auth([4]), async (req, res, next) => {
@@ -32,6 +33,7 @@ router.get('/', auth([1, 2, 3]), async (req, res, next) => {
     const key = req.query.key || '';
     const year = req.query.year || '';
     const semester = req.query.semester || '';
+    const pending = req.query.pending || '';
 
     const conditions = [];
     const params = [];
@@ -39,6 +41,7 @@ router.get('/', auth([1, 2, 3]), async (req, res, next) => {
     if (key) { conditions.push('(p.name_project LIKE ? OR p.id_project LIKE ?)'); params.push(`%${key}%`, `%${key}%`); }
     if (year) { conditions.push('e.year_exam=?'); params.push(year); }
     if (semester) { conditions.push('e.semester_exam=?'); params.push(semester); }
+    if (pending) { conditions.push('e.id_statusproject=?'); params.push(EXAM_PENDING); }
     const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
 
     const [[{ total }]] = await pool.query(
@@ -106,43 +109,47 @@ router.post('/:id/assign', auth([2]), async (req, res, next) => {
         [req.params.id, date_assignexam, time_assignexam, endtime_assignexam || '', id_room]
       );
     }
+    const [[exam]] = await pool.query('SELECT id_project, id_typeexam FROM exam WHERE id_exam=?', [req.params.id]);
+    if (exam) {
+      const projStatus = ASSIGN_STATUS[exam.id_typeexam];
+      if (projStatus) await pool.query('UPDATE project SET id_statusproject=? WHERE id_project=?', [projStatus, exam.id_project]);
+    }
     res.json({ message: 'กำหนดวันสอบสำเร็จ' });
   } catch (err) { next(err); }
 });
 
-// POST /api/exams/:id/approve — officer approves exam request
+// POST /api/exams/:id/approve — officer approves (รับเรื่อง) a pending exam request
 router.post('/:id/approve', auth([2]), async (req, res, next) => {
   try {
-    const { id_statusproject } = req.body;
-    await pool.query('UPDATE exam SET id_statusproject=? WHERE id_exam=?', [id_statusproject, req.params.id]);
-    const [[exam]] = await pool.query('SELECT id_project FROM exam WHERE id_exam=?', [req.params.id]);
-    if (exam) await pool.query('UPDATE project SET id_statusproject=? WHERE id_project=?', [id_statusproject, exam.id_project]);
+    const [[exam]] = await pool.query('SELECT id_project, id_typeexam FROM exam WHERE id_exam=?', [req.params.id]);
+    if (!exam) return res.status(404).json({ message: 'ไม่พบข้อมูลการสอบ' });
+    const projStatus = APPROVE_STATUS[exam.id_typeexam];
+    if (!projStatus) return res.status(400).json({ message: 'ประเภทการสอบไม่ถูกต้อง' });
+
+    await pool.query('UPDATE exam SET id_statusproject=? WHERE id_exam=?', [EXAM_APPROVED, req.params.id]);
+    await pool.query('UPDATE project SET id_statusproject=? WHERE id_project=?', [projStatus, exam.id_project]);
     res.json({ message: 'อนุมัติการสอบสำเร็จ' });
   } catch (err) { next(err); }
 });
 
-// POST /api/exams/:id/result — officer saves exam result (via status only, no result column)
+// POST /api/exams/:id/result — officer saves exam result
+// body: { resultexam: 0=ไม่ผ่าน, 1=ผ่าน, 3=ไม่ผ่าน(F, 100%-exam only), comment_exam }
 router.post('/:id/result', auth([2]), async (req, res, next) => {
   try {
-    const { id_statusproject, comment_exam } = req.body;
+    const { resultexam, comment_exam } = req.body;
+    const [[exam]] = await pool.query('SELECT id_project, id_typeexam FROM exam WHERE id_exam=?', [req.params.id]);
+    if (!exam) return res.status(404).json({ message: 'ไม่พบข้อมูลการสอบ' });
+
+    const { exam_status, project_status, disableUser } = resolveResult(exam.id_typeexam, resultexam);
+
     await pool.query(
       'UPDATE exam SET id_statusproject=?, comment_exam=? WHERE id_exam=?',
-      [id_statusproject, comment_exam || '', req.params.id]
+      [exam_status, comment_exam || '', req.params.id]
     );
-    const [examRow] = await pool.query('SELECT id_project, id_typeexam FROM exam WHERE id_exam=?', [req.params.id]);
-    if (examRow.length) {
-      // map exam status to project status
-      const examStatus = parseInt(id_statusproject);
-      let projStatus = id_statusproject;
-      if (examStatus === 24) { // ผ่าน → map to project pass status by typeexam
-        const typeexam = examRow[0].id_typeexam;
-        if (typeexam === 1) projStatus = 15; // สอบหัวข้อผ่าน
-        else if (typeexam === 2) projStatus = 10; // สอบ60ผ่าน
-        else if (typeexam === 3) projStatus = 14; // สอบ100ผ่าน
-      } else if (examStatus === 22) { // ไม่ผ่าน
-        projStatus = 17;
-      }
-      await pool.query('UPDATE project SET id_statusproject=? WHERE id_project=?', [projStatus, examRow[0].id_project]);
+    await pool.query('UPDATE project SET id_statusproject=? WHERE id_project=?', [project_status, exam.id_project]);
+    if (disableUser) {
+      const [[proj]] = await pool.query('SELECT id_user FROM project WHERE id_project=?', [exam.id_project]);
+      if (proj) await pool.query('UPDATE user SET status_user=0 WHERE id_user=?', [proj.id_user]);
     }
     res.json({ message: 'บันทึกผลการสอบสำเร็จ' });
   } catch (err) { next(err); }

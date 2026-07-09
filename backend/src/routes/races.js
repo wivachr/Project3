@@ -2,8 +2,8 @@ const router = require('express').Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
 
-// GET /api/races?page=1&limit=20&key=
-router.get('/', auth([1, 2, 3, 4]), async (req, res, next) => {
+// GET /api/races?page=1&limit=20&key= — officer-managed module, no teacher/student page uses this
+router.get('/', auth([1, 2]), async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;

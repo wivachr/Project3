@@ -7,6 +7,7 @@ const emptyForm = {
   casestudy_project: '', engcasestudy_project: '',
   id_subject: '', address_project: '', email_project: '',
   tel: '', id_teacher: '', password: '', repassword: '',
+  project_type: 'term', parent_project_id: '',
 };
 
 export default function RegisterProject() {
@@ -57,6 +58,19 @@ export default function RegisterProject() {
           id_subject: op.id_subject ? String(op.id_subject) : f.id_subject,
         }));
         setCheckMsg('__old__');
+      } else if (data.year_project_option) {
+        const yp = data.year_project_option;
+        setForm(f => ({
+          ...f,
+          project_type: 'year',
+          parent_project_id: String(yp.id_project),
+          name_project: yp.name_project || '',
+          engname_project: yp.engname_project || '',
+          casestudy_project: yp.casestudy_project || '',
+          engcasestudy_project: yp.engcasestudy_project || '',
+          id_subject: yp.id_subject ? String(yp.id_subject) : f.id_subject,
+        }));
+        setCheckMsg('__year2__');
       }
     } catch {
       setCheckMsg('ไม่พบรหัสนักศึกษาในระบบ');
@@ -125,7 +139,7 @@ export default function RegisterProject() {
             <button onClick={checkStudent} className="border border-input bg-background px-3 py-1 rounded-md text-sm hover:bg-accent transition-colors whitespace-nowrap">ตรวจสอบ</button>
           </div>
         </div>
-        {checkMsg && checkMsg !== '__old__' && (
+        {checkMsg && checkMsg !== '__old__' && checkMsg !== '__year2__' && (
           <p className={`text-xs ml-52 ${checkMsg.startsWith('ไม่') || checkMsg.includes('มีโครงการ') ? 'text-red-500' : 'text-amber-600'}`}>
             {checkMsg}
           </p>
@@ -140,6 +154,11 @@ export default function RegisterProject() {
                 พบโครงการเดิมที่สำเร็จแล้ว — กรอกข้อมูลชื่อโครงการจากโครงการเก่าให้อัตโนมัติแล้ว สามารถแก้ไขได้
               </div>
             )}
+            {checkMsg === '__year2__' && (
+              <div className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-2 py-1">
+                พบโปรเจคปีเดิมที่ผ่านการสอบหัวข้อแล้ว — นี่คือการลงทะเบียน<b>โปรเจคปีครั้งที่ 2</b> อาจารย์ที่ปรึกษาและกรรมการจะใช้ชุดเดิมจากครั้งที่ 1 โดยอัตโนมัติ
+              </div>
+            )}
           </div>
         )}
 
@@ -150,18 +169,24 @@ export default function RegisterProject() {
 
         <div className="flex items-start gap-2">
           <label className="text-sm w-52 shrink-0 pt-2">อาจารย์ที่ปรึกษา</label>
-          <select
-            className="flex h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            value={form.id_teacher}
-            onChange={e => setForm(f => ({ ...f, id_teacher: e.target.value }))}
-          >
-            <option value="">--- เลือกอาจารย์ ---</option>
-            {teachers.map(t => (
-              <option key={t.id_teacher} value={t.id_teacher}>
-                {t.name_academictitle}{t.name_teacher} {t.sname_teacher}
-              </option>
-            ))}
-          </select>
+          <div className="flex-1">
+            <select
+              className="flex h-9 min-w-0 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+              value={form.id_teacher}
+              disabled={!!form.parent_project_id}
+              onChange={e => setForm(f => ({ ...f, id_teacher: e.target.value }))}
+            >
+              <option value="">--- เลือกอาจารย์ ---</option>
+              {teachers.map(t => (
+                <option key={t.id_teacher} value={t.id_teacher}>
+                  {t.name_academictitle}{t.name_teacher} {t.sname_teacher}
+                </option>
+              ))}
+            </select>
+            {form.parent_project_id && (
+              <p className="text-xs text-muted-foreground mt-1">ลงทะเบียนครั้งที่ 2 ใช้อาจารย์ที่ปรึกษาคนเดิมอัตโนมัติ ไม่ต้องเลือกใหม่</p>
+            )}
+          </div>
         </div>
 
         <div className="flex items-start gap-2">

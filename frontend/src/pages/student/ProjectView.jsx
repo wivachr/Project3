@@ -236,6 +236,9 @@ function CoadvisorSection({ project }) {
   );
 }
 
+// Statuses at which a passed year-project is eligible to spin up "project 2"
+const ROUND2_ELIGIBLE = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 23, 24];
+
 export default function StudentProjectView() {
   const { user } = useAuth();
   const [project, setProject] = useState(null);
@@ -243,10 +246,24 @@ export default function StudentProjectView() {
   const [editing, setEditing] = useState(false);
   const [subjects, setSubjects] = useState([]);
   const [academicYear, setAcademicYear] = useState(null);
+  const [round2Msg, setRound2Msg] = useState('');
+  const [round2Busy, setRound2Busy] = useState(false);
 
   const load = () => {
     setLoading(true);
     api.get('/projects/my').then(r => setProject(r.data)).finally(() => setLoading(false));
+  };
+
+  const handleRegisterRound2 = async () => {
+    if (!window.confirm('ยืนยันลงทะเบียนโปรเจคปีครั้งที่ 2? ระบบจะใช้อาจารย์ที่ปรึกษาและกรรมการชุดเดิม')) return;
+    setRound2Busy(true);
+    setRound2Msg('');
+    try {
+      const res = await api.post(`/projects/${project.id_project}/register-round2`);
+      setRound2Msg(`ลงทะเบียนสำเร็จ! รหัสโครงการใหม่ / username: ${res.data.username}`);
+    } catch (e) {
+      setRound2Msg(e.response?.data?.message || 'เกิดข้อผิดพลาด');
+    } finally { setRound2Busy(false); }
   };
 
   useEffect(() => {
@@ -282,8 +299,13 @@ export default function StudentProjectView() {
     </div>
   );
 
+  const projectTypeLabel = project.project_type === 'year'
+    ? `โปรเจคปี${project.parent_project_id ? ' (โปรเจค 2)' : ' (โปรเจค 1)'}`
+    : 'โปรเจคเทอม';
+
   const rows = [
     ['รหัสโครงการ', project.id_project],
+    ['ประเภทโครงการ', projectTypeLabel],
     ['ชื่อโครงการ (ไทย)', project.name_project],
     ['ชื่อโครงการ (อังกฤษ)', project.engname_project],
     ['กรณีศึกษา', project.casestudy_project],
@@ -296,12 +318,25 @@ export default function StudentProjectView() {
     ['ไฟล์รายงาน', project.torgor_project ? <a href={`http://localhost:5000${project.torgor_project}`} target="_blank" rel="noreferrer" className="text-primary hover:underline">ดาวน์โหลด</a> : '-'],
   ];
 
+  const canRegisterRound2 = project.project_type === 'year' && !project.parent_project_id
+    && ROUND2_ELIGIBLE.includes(project.id_statusproject);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-semibold text-xl tracking-tight">ข้อมูลโครงการ</h2>
         <button onClick={() => setEditing(true)} className="text-sm text-primary hover:underline border border-blue-300 px-3 py-1 rounded">แก้ไข</button>
       </div>
+
+      {canRegisterRound2 && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded p-3 mb-3 max-w-2xl text-sm">
+          <p className="text-emerald-800 mb-2">โปรเจคปีนี้ผ่านการสอบหัวข้อแล้ว สามารถลงทะเบียนโปรเจคปีครั้งที่ 2 ได้ (ใช้อาจารย์ที่ปรึกษา/กรรมการชุดเดิม)</p>
+          <button onClick={handleRegisterRound2} disabled={round2Busy} className="bg-emerald-600 text-white px-4 py-1.5 rounded-md text-sm hover:bg-emerald-700 transition-colors disabled:opacity-50">
+            {round2Busy ? 'กำลังลงทะเบียน...' : 'ลงทะเบียนโปรเจคปีครั้งที่ 2'}
+          </button>
+          {round2Msg && <p className={`text-xs mt-2 ${round2Msg.includes('สำเร็จ') ? 'text-emerald-700' : 'text-red-500'}`}>{round2Msg}</p>}
+        </div>
+      )}
 
       <div className="bg-white rounded shadow overflow-hidden max-w-2xl">
         <table className="w-full text-sm">

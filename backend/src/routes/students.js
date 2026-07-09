@@ -106,12 +106,36 @@ router.get('/check/:id', async (req, res, next) => {
       if (old) old_project = old;
     }
 
+    // 6. Eligible "year project round 2" parent? (checkyearproject.php) — a 'year'-type project,
+    // not itself already a round-2 (parent_project_id IS NULL), that has passed the title exam,
+    // has no round-2 registered against it yet, and is from a different semester than the current one.
+    let year_project_option = null;
+    const passedIn = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 23, 24];
+    const [[yp]] = await pool.query(
+      `SELECT p.id_project, p.name_project, p.casestudy_project, p.engname_project, p.engcasestudy_project,
+              p.year_project, p.semester_project, p.id_subject,
+              CONCAT(at2.name_academictitle, t.name_teacher, ' ', t.sname_teacher) AS advisor_name
+       FROM project p
+       JOIN manipulator m ON m.id_project=p.id_project
+       LEFT JOIN committee c ON c.id_project=p.id_project AND c.position='ที่ปรึกษา'
+       LEFT JOIN teacher t ON c.id_teacher=t.id_teacher
+       LEFT JOIN academictitle at2 ON t.id_academictitle=at2.id_academictitle
+       WHERE m.id_student=? AND p.project_type='year' AND p.parent_project_id IS NULL
+         AND p.id_statusproject IN (${passedIn.join(',')})
+         AND NOT (p.year_project=? AND p.semester_project=?)
+         AND NOT EXISTS (SELECT 1 FROM project p2 WHERE p2.parent_project_id=p.id_project)
+       LIMIT 1`,
+      [id, year, semester]
+    );
+    if (yp) year_project_option = yp;
+
     res.json({
       ...rows[0],
       is_registered: !!reg,
       registration: reg || null,
       has_active_project: !!active,
       old_project,
+      year_project_option,
     });
   } catch (err) { next(err); }
 });

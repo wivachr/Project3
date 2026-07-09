@@ -119,9 +119,15 @@ router.post('/', auth([1, 2]), async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// PUT /api/teachers/:id
+// PUT /api/teachers/:id — admin/officer may edit any teacher; a teacher may only edit their own row
 router.put('/:id', auth([1, 2, 3]), async (req, res, next) => {
   try {
+    if (req.user.right === 3) {
+      const [[me]] = await pool.query('SELECT id_teacher FROM teacher WHERE id_user=?', [req.user.iduser]);
+      if (!me || String(me.id_teacher) !== String(req.params.id)) {
+        return res.status(403).json({ message: 'ไม่มีสิทธิ์แก้ไขข้อมูลอาจารย์ท่านอื่น' });
+      }
+    }
     const { id_title, id_academictitle, name_teacher, sname_teacher, initials_teacher, id_faculty, id_department, id_division, tel_teacher, email_teacher } = req.body;
     await pool.query(
       'UPDATE teacher SET id_title=?,id_academictitle=?,name_teacher=?,sname_teacher=?,initials_teacher=?,id_faculty=?,id_department=?,id_division=?,tel_teacher=?,email_teacher=? WHERE id_teacher=?',

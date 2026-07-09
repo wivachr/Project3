@@ -97,8 +97,8 @@ export default function App() {
             <Route path="registers" element={<RegisterList />} />
             <Route path="projects" element={<ProjectList />} />
             <Route path="projects/pending-title" element={<PendingExam typeexam={1} />} />
-            <Route path="projects/pending-60" element={<PendingExam typeexam={2} />} />
-            <Route path="projects/pending-100" element={<PendingExam typeexam={3} />} />
+            <Route path="projects/pending-60" element={<PendingExam typeexam={3} />} />
+            <Route path="projects/pending-100" element={<PendingExam typeexam={2} />} />
             <Route path="projects/assign-committee" element={<AssignCommittee />} />
             <Route path="projects/assign-exam" element={<ExamList />} />
             <Route path="projects/save-result" element={<SaveResult />} />
@@ -139,8 +139,8 @@ export default function App() {
             <Route index element={<Home />} />
             <Route path="project" element={<StudentProjectView />} />
             <Route path="submit-title" element={<SubmitExam typeexam={1} label="ส่งสอบหัวข้อ" statusProject={2} />} />
-            <Route path="submit-60" element={<SubmitExam typeexam={2} label="ส่งสอบ 60%" statusProject={11} />} />
-            <Route path="submit-100" element={<SubmitExam typeexam={3} label="ส่งสอบ 100%" statusProject={14} />} />
+            <Route path="submit-60" element={<SubmitExam typeexam={3} label="ส่งสอบ 60%" statusProject={7} />} />
+            <Route path="submit-100" element={<SubmitExam typeexam={2} label="ส่งสอบ 100%" statusProject={11} />} />
             <Route path="exam-history" element={<ExamHistory />} />
             <Route path="edit-history" element={<EditHistory />} />
             <Route path="upload" element={<UploadBook />} />

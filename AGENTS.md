@@ -47,4 +47,4 @@ History uses imperative, sentence-case commits such as `Refactor news post route
 
 ## Security & Configuration Tips
 
-Keep `backend/.env` untracked. The local database is `projectinformationsystem` in XAMPP MySQL; do not commit secrets, uploads, or generated build output.
+Keep `backend/.env` untracked. The local database is `project3` in XAMPP MySQL (a standalone copy split off from Project2's `projectinformationsystem`, not shared with it); do not commit secrets, uploads, or generated build output.

@@ -25,10 +25,10 @@ CORS is locked to `http://localhost:5173`. If Vite picks a different port, updat
 ## Database
 
 - Engine: MySQL via XAMPP
-- Database: `projectinformationsystem`
+- Database: `project3` — a full copy of Project2's `projectinformationsystem` schema+data, split off 2026-07 so the two apps no longer share live data (edits in one no longer reflect in the other)
 - Host: `localhost`, User: `root`, Password: (empty)
 - Config: `backend/.env` and `backend/src/config/database.js`
-- Reference schema: `c:/xampp/htdocs/Project2/projectinformationsystem.sql`
+- Reference schema: `c:/xampp/htdocs/Project2/projectinformationsystem.sql` (structurally identical to `project3`, but data has diverged since the split)
 - Pool has `dateStrings: true` — mysql2 returns DATE/DATETIME columns as strings (`"2569-06-25"`) instead of JS Date objects; without this, dates serialize to UTC ISO strings and shift by the UTC+7 offset (e.g. `2569-06-25` → `"2569-06-24T17:00:00.000Z"`)
 
 ### MyISAM tables without AUTO_INCREMENT
@@ -67,7 +67,7 @@ Several tables use MyISAM engine with a manually managed PK (no `AUTO_INCREMENT`
 | `manipulator` | `id_manipulator` | `id_student` + `id_project` + `tel_manipulator` |
 | `committee` | `id_committee` | positions: ที่ปรึกษา / ประธาน / กรรมการ |
 | `coadvisor` | `id_coadvisor` | External advisors (not in teacher table); has `id_title`, `name_coadvisor`, `sname_coadvisor` |
-| `exam` | `id_exam` | Per submission; `id_typeexam` 1=หัวข้อ 2=60% 3=100% |
+| `exam` | `id_exam` | Per submission; `id_typeexam` **1=หัวข้อ, 2=สอบร้อยเปอร์เซนต์(100%), 3=สอบหกสิบเปอร์เซนต์(60%)** — verified against the live `typeexam` table; a prior version of this doc had 2/3 swapped, which caused a real bug across submit/approve/assign/result routes and several frontend pages (fixed 2026-07). `exam.id_statusproject` uses a separate phase-tracking sub-range distinct from `project.id_statusproject`: 20=submitted/pending, 21=approved/awaiting exam, 22=fail, 23=100%-exam soft fail (resubmit), 24=pass, 25=100%-exam hard fail (F). See `backend/src/config/examStatus.js` for the authoritative per-type status transition tables. |
 | `assignexam` | `id_assignexam` | One-to-one with `exam`; stores date/time/room |
 | `registration` | composite | `year+semester+id_student+id_subject+section` |
 | `race` | `id_race` | `id_project`, `location_race`, `status_race` |

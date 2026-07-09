@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 const ROLE_PATH = { 1: '/admin', 2: '/officer', 3: '/teacher', 4: '/student' };
+const fileUrl = (p) => (p ? `http://localhost:5000${p.startsWith('/') ? p : '/' + p}` : null);
 
 export default function Login() {
   const { login, user } = useAuth();
@@ -68,6 +69,12 @@ export default function Login() {
                   {fmtDate(n.date_news)}
                 </p>
                 <div className="text-sm break-words" dangerouslySetInnerHTML={{ __html: n.detail_news }} />
+                {(n.pdf_news || n.image_news) && (
+                  <div className="flex items-center gap-3 mt-1">
+                    {n.pdf_news && <a href={fileUrl(n.pdf_news)} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">[PDF]</a>}
+                    {n.image_news && <a href={fileUrl(n.image_news)} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">[รูปภาพ]</a>}
+                  </div>
+                )}
               </div>
             ))}
           </CardContent>

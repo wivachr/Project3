@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
 const multer = require('multer');
+const { SUBMIT_STATUS, EXAM_PENDING } = require('../config/examStatus');
 
 const md5 = (str) => crypto.createHash('md5').update(str).digest('hex');
 const path = require('path');
@@ -12,6 +13,16 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
 });
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
+
+// Student write endpoints are scoped to req.user.iduser (any auth([4]) token, not just this
+// project's owner) unless this is checked explicitly — see SECURITY_HARDENING.md in Project2
+// for the equivalent ownership-check pattern this ports.
+async function assertOwnsProject(req, projectId) {
+  const [[proj]] = await pool.query('SELECT id_user FROM project WHERE id_project=?', [projectId]);
+  if (!proj) { const e = new Error('ไม่พบโครงการ'); e.status = 404; throw e; }
+  if (proj.id_user !== req.user.iduser) { const e = new Error('ไม่มีสิทธิ์เข้าถึงโครงการนี้'); e.status = 403; throw e; }
+  return proj;
+}
 
 const PROJECT_COLS = `
   p.*, sp.name_statusproject, s.name_subject,
@@ -30,12 +41,16 @@ const PROJECT_JOINS = `
 `;
 
 // POST /api/projects/register — public: student registers new project (creates user account)
+// project_type: 'term' (default) or 'year'. When 'year' and parent_project_id is set, this is a
+// round-2 year-project registration -- reuses the parent's approved ทก.01/committee/coadvisors and
+// skips the title-exam stage entirely (status 6), matching Project2's regis/registerproject.php.
 router.post('/register', async (req, res, next) => {
   try {
     const {
       id_student, name_project, engname_project, casestudy_project, engcasestudy_project,
       id_subject, year_project, semester_project, section_project,
-      address_project, email_project, tel, id_teacher, password
+      address_project, email_project, tel, id_teacher, password,
+      project_type, parent_project_id
     } = req.body;
 
     if (!id_student || !name_project || !password) {
@@ -61,6 +76,23 @@ router.post('/register', async (req, res, next) => {
     );
     if (existProj) return res.status(400).json({ message: 'นักศึกษานี้มีโครงการในปีการศึกษาปัจจุบันแล้ว' });
 
+    const isYearType = project_type === 'year';
+    let parentRow = null;
+    if (isYearType && parent_project_id) {
+      const passedIn = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 23, 24];
+      const [[pchk]] = await pool.query(
+        `SELECT p.* FROM project p JOIN manipulator m ON m.id_project=p.id_project
+         WHERE p.id_project=? AND m.id_student=? AND p.project_type='year'
+           AND p.id_statusproject IN (${passedIn.join(',')}) LIMIT 1`,
+        [parent_project_id, id_student]
+      );
+      if (!pchk) return res.status(400).json({ message: 'ไม่สามารถลงทะเบียนโปรเจคปีครั้งที่ 2 ได้ — โปรเจคเดิมยังไม่ผ่านการสอบหัวข้อ' });
+      if (pchk.year_project === ay.year && pchk.semester_project === ay.semester) {
+        return res.status(400).json({ message: 'ยังไม่ถึงเวลาลงทะเบียนโปรเจค 2 ต้องรอภาคการศึกษาถัดไป' });
+      }
+      parentRow = pchk;
+    }
+
     // Generate project ID: current BE year + 4-digit sequence
     const now = new Date(Date.now() + 7 * 60 * 60 * 1000);
     const beYearShort = String(now.getUTCFullYear() + 543).slice(-2);
@@ -83,16 +115,20 @@ router.post('/register', async (req, res, next) => {
     const id_user = userResult.insertId;
 
     // Create project
+    const newStatus = parentRow ? 6 : 1;
     await pool.query(
       `INSERT INTO project (id_project,id_user,id_subject,id_statusproject,name_project,engname_project,
-        casestudy_project,engcasestudy_project,address_project,email_project,year_project,semester_project,section_project)
-       VALUES (?,?,?,1,?,?,?,?,?,?,?,?,?)`,
-      [id_project, id_user, id_subject || reg.id_subject,
+        casestudy_project,engcasestudy_project,address_project,email_project,year_project,semester_project,section_project,
+        project_type,parent_project_id,torgor_project)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [id_project, id_user, id_subject || reg.id_subject, newStatus,
        name_project, engname_project || '',
        casestudy_project || '', engcasestudy_project || '',
        address_project || '', email_project || '',
        year_project || reg.year_registration, semester_project || reg.semester_registration,
-       section_project || reg.section]
+       section_project || reg.section,
+       isYearType ? 'year' : 'term', parentRow ? parentRow.id_project : null,
+       parentRow ? parentRow.torgor_project : '']
     );
 
     // Add student to manipulator
@@ -102,8 +138,20 @@ router.post('/register', async (req, res, next) => {
       [maxMani + 1, id_student, id_project, tel || '']
     );
 
-    // Add advisor to committee if provided
-    if (id_teacher) {
+    if (parentRow) {
+      // Round 2: carry the advisor + co-advisor over from the parent instead of the form's teacher
+      // dropdown, since ทก.01 approval was tied to that committee.
+      const [parentCommittee] = await pool.query(
+        "SELECT id_teacher FROM committee WHERE id_project=? AND position='ที่ปรึกษา'", [parentRow.id_project]
+      );
+      for (const c of parentCommittee) {
+        await pool.query('INSERT INTO committee (id_teacher,id_project,position) VALUES (?,?,?)', [c.id_teacher, id_project, 'ที่ปรึกษา']);
+      }
+      const [parentCoadvisors] = await pool.query('SELECT id_title,name_coadvisor,sname_coadvisor FROM coadvisor WHERE id_project=?', [parentRow.id_project]);
+      for (const co of parentCoadvisors) {
+        await pool.query('INSERT INTO coadvisor (id_project,id_title,name_coadvisor,sname_coadvisor) VALUES (?,?,?,?)', [id_project, co.id_title, co.name_coadvisor, co.sname_coadvisor]);
+      }
+    } else if (id_teacher) {
       await pool.query(
         'INSERT INTO committee (id_teacher,id_project,position) VALUES (?,?,?)',
         [id_teacher, id_project, 'ที่ปรึกษา']
@@ -111,10 +159,69 @@ router.post('/register', async (req, res, next) => {
     }
 
     res.status(201).json({
-      message: 'ลงทะเบียนโครงงานสำเร็จ',
+      message: parentRow ? 'ลงทะเบียนโปรเจคปีครั้งที่ 2 สำเร็จ' : 'ลงทะเบียนโครงงานสำเร็จ',
       id_project,
       username,
     });
+  } catch (err) { next(err); }
+});
+
+// POST /api/projects/:id/register-round2 — project owner spins up "project 2" for an already-
+// passed year-type project, reusing its committee/coadvisors/ทก.01, starting at status 6.
+// Ports Project2's project/registerproject2.php.
+router.post('/:id/register-round2', auth([4]), async (req, res, next) => {
+  try {
+    const parent = await assertOwnsProject(req, req.params.id);
+    const [[fullParent]] = await pool.query('SELECT * FROM project WHERE id_project=?', [req.params.id]);
+
+    const passedIn = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 23, 24];
+    if (fullParent.project_type !== 'year' || fullParent.parent_project_id || !passedIn.includes(fullParent.id_statusproject)) {
+      return res.status(400).json({ message: 'ไม่สามารถลงทะเบียนโปรเจค 2 ได้ในขณะนี้' });
+    }
+    const [[dup]] = await pool.query('SELECT id_project FROM project WHERE parent_project_id=? LIMIT 1', [req.params.id]);
+    if (dup) return res.status(400).json({ message: 'โครงงานนี้ลงทะเบียนโปรเจค 2 ไปแล้ว' });
+
+    const [[ay]] = await pool.query('SELECT year, semester FROM academicyear LIMIT 1');
+    if (fullParent.year_project === ay.year && fullParent.semester_project === ay.semester) {
+      return res.status(400).json({ message: 'ยังไม่ถึงเวลาลงทะเบียนโปรเจค 2 ต้องรอภาคการศึกษาถัดไป' });
+    }
+
+    const now = new Date(Date.now() + 7 * 60 * 60 * 1000);
+    const beYearShort = String(now.getUTCFullYear() + 543).slice(-2);
+    const [[{ maxId }]] = await pool.query(`SELECT COALESCE(MAX(id_project),0) AS maxId FROM project WHERE id_project LIKE ?`, [`${beYearShort}%`]);
+    const seq = String((maxId % 10000) + 1).padStart(4, '0');
+    const newId = parseInt(`${beYearShort}${seq}`);
+
+    const [[parentUser]] = await pool.query('SELECT password FROM user WHERE id_user=?', [parent.id_user]);
+    const [userResult] = await pool.query(
+      "INSERT INTO user (username,password,name_user,sname_user,id_right,status_user) VALUES (?,?,?,?,'4','1')",
+      [String(newId), parentUser.password, `ผู้จัดทำโครงงานพิเศษรหัส ${newId}`, '']
+    );
+    const newUserId = userResult.insertId;
+
+    await pool.query(
+      `INSERT INTO project (id_project,name_project,casestudy_project,id_subject,year_project,semester_project,section_project,
+        project_type,parent_project_id,address_project,email_project,torgor_project,id_statusproject,id_user,engname_project,engcasestudy_project)
+       VALUES (?,?,?,?,?,?,?,'year',?,?,?,?,6,?,?,?)`,
+      [newId, fullParent.name_project, fullParent.casestudy_project, fullParent.id_subject, ay.year, ay.semester, fullParent.section_project,
+       fullParent.id_project, fullParent.address_project, fullParent.email_project, fullParent.torgor_project, newUserId,
+       fullParent.engname_project, fullParent.engcasestudy_project]
+    );
+
+    const [members] = await pool.query('SELECT id_student, tel_manipulator FROM manipulator WHERE id_project=?', [req.params.id]);
+    for (const m of members) {
+      await pool.query('INSERT INTO manipulator (id_student,id_project,tel_manipulator) VALUES (?,?,?)', [m.id_student, newId, m.tel_manipulator]);
+    }
+    const [committee] = await pool.query("SELECT id_teacher FROM committee WHERE id_project=? AND position='ที่ปรึกษา'", [req.params.id]);
+    for (const c of committee) {
+      await pool.query('INSERT INTO committee (id_teacher,id_project,position) VALUES (?,?,?)', [c.id_teacher, newId, 'ที่ปรึกษา']);
+    }
+    const [coadvisors] = await pool.query('SELECT id_title,name_coadvisor,sname_coadvisor FROM coadvisor WHERE id_project=?', [req.params.id]);
+    for (const co of coadvisors) {
+      await pool.query('INSERT INTO coadvisor (id_project,id_title,name_coadvisor,sname_coadvisor) VALUES (?,?,?,?)', [newId, co.id_title, co.name_coadvisor, co.sname_coadvisor]);
+    }
+
+    res.status(201).json({ message: 'ลงทะเบียนโปรเจค 2 สำเร็จ', id_project: newId, username: String(newId) });
   } catch (err) { next(err); }
 });
 
@@ -364,6 +471,16 @@ router.post('/:id/committee', auth([1, 2]), async (req, res, next) => {
   try {
     const { id_teacher, position } = req.body;
     await pool.query('INSERT INTO committee (id_teacher,id_project,position) VALUES (?,?,?)', [id_teacher, req.params.id, position]);
+    // A project's committee is considered "assigned" (status 3 -> 4) once it has a ประธาน,
+    // matching Project2's project/assigningteacher.php trigger. Project3's officer UI adds
+    // committee members one at a time rather than in Project2's single batch submit, so this
+    // advances on whichever call adds the chair rather than on the first call regardless of role.
+    if (position === 'ประธาน') {
+      await pool.query(
+        `UPDATE project SET id_statusproject=4 WHERE id_project=? AND id_statusproject=3`,
+        [req.params.id]
+      );
+    }
     res.status(201).json({ message: 'เพิ่มกรรมการสำเร็จ' });
   } catch (err) { next(err); }
 });
@@ -393,6 +510,7 @@ router.get('/:id/members', auth([1, 2, 4]), async (req, res, next) => {
 // POST /api/projects/:id/members — add member
 router.post('/:id/members', auth([4]), async (req, res, next) => {
   try {
+    await assertOwnsProject(req, req.params.id);
     const { id_student, tel_manipulator } = req.body;
     const [existing] = await pool.query('SELECT 1 FROM student WHERE id_student=?', [id_student]);
     if (!existing.length) return res.status(404).json({ message: 'ไม่พบรหัสนักศึกษา' });
@@ -405,6 +523,7 @@ router.post('/:id/members', auth([4]), async (req, res, next) => {
 // DELETE /api/projects/:id/members/:mid
 router.delete('/:id/members/:mid', auth([1, 2, 4]), async (req, res, next) => {
   try {
+    if (req.user.right === 4) await assertOwnsProject(req, req.params.id);
     await pool.query('DELETE FROM manipulator WHERE id_manipulator=? AND id_project=?', [req.params.mid, req.params.id]);
     res.json({ message: 'ลบสมาชิกสำเร็จ' });
   } catch (err) { next(err); }
@@ -425,6 +544,7 @@ router.get('/:id/coadvisors', auth([1, 2, 3, 4]), async (req, res, next) => {
 // POST /api/projects/:id/coadvisors
 router.post('/:id/coadvisors', auth([4]), async (req, res, next) => {
   try {
+    await assertOwnsProject(req, req.params.id);
     const { id_title, name_coadvisor, sname_coadvisor } = req.body;
     if (!name_coadvisor || !sname_coadvisor) return res.status(400).json({ message: 'กรุณากรอกชื่อ-สกุล' });
     await pool.query(
@@ -438,6 +558,7 @@ router.post('/:id/coadvisors', auth([4]), async (req, res, next) => {
 // DELETE /api/projects/:id/coadvisors/:cid
 router.delete('/:id/coadvisors/:cid', auth([4]), async (req, res, next) => {
   try {
+    await assertOwnsProject(req, req.params.id);
     await pool.query('DELETE FROM coadvisor WHERE id_coadvisor=? AND id_project=?', [req.params.cid, req.params.id]);
     res.json({ message: 'ลบอาจารย์ที่ปรึกษาร่วมสำเร็จ' });
   } catch (err) { next(err); }
@@ -446,13 +567,24 @@ router.delete('/:id/coadvisors/:cid', auth([4]), async (req, res, next) => {
 // POST /api/projects/:id/submit-exam
 router.post('/:id/submit-exam', auth([4]), async (req, res, next) => {
   try {
-    const { id_typeexam } = req.body;
-    // status: typeexam 1→2, 2→11, 3→14
-    const statusMap = { 1: 2, 2: 11, 3: 14 };
-    const id_statusproject = statusMap[id_typeexam] || 2;
+    await assertOwnsProject(req, req.params.id);
+    const id_typeexam = parseInt(req.body.id_typeexam);
+    const id_statusproject = SUBMIT_STATUS[id_typeexam];
+    if (!id_statusproject) return res.status(400).json({ message: 'ประเภทการสอบไม่ถูกต้อง' });
+
+    // Dedupe guard: reject if a pending request for this project+type already exists
+    // (Project2's submit100exam.php/submit60exam.php/submittitleexam.php bug this ports the fix for —
+    // a double-click without this guard creates duplicate exam rows, which then fan out into
+    // duplicate rows in any officer list query joining exam+project).
+    const [[dupe]] = await pool.query(
+      'SELECT id_exam FROM exam WHERE id_project=? AND id_typeexam=? AND id_statusproject=? LIMIT 1',
+      [req.params.id, id_typeexam, EXAM_PENDING]
+    );
+    if (dupe) return res.status(400).json({ message: 'มีคำร้องขอสอบที่รอดำเนินการอยู่แล้ว' });
+
     await pool.query(
       'INSERT INTO exam (id_project,id_typeexam,id_statusproject,date_submitexam) VALUES (?,?,?,NOW())',
-      [req.params.id, id_typeexam, id_statusproject]
+      [req.params.id, id_typeexam, EXAM_PENDING]
     );
     await pool.query('UPDATE project SET id_statusproject=? WHERE id_project=?', [id_statusproject, req.params.id]);
     res.status(201).json({ message: 'ส่งคำร้องขอสอบสำเร็จ' });
@@ -491,7 +623,11 @@ router.post('/:id/confirm-book', auth([1, 2]), async (req, res, next) => {
 // POST /api/projects/:id/upload
 router.post('/:id/upload', auth([4]), upload.single('file'), async (req, res, next) => {
   try {
+    await assertOwnsProject(req, req.params.id);
     if (!req.file) return res.status(400).json({ message: 'ไม่พบไฟล์' });
+    if (path.extname(req.file.originalname).toLowerCase() !== '.pdf') {
+      return res.status(400).json({ message: 'อนุญาตเฉพาะไฟล์ PDF เท่านั้น' });
+    }
     const fileUrl = `/uploads/${req.file.filename}`;
     await pool.query('UPDATE project SET torgor_project=? WHERE id_project=?', [fileUrl, req.params.id]);
     res.json({ message: 'อัปโหลดไฟล์สำเร็จ', url: fileUrl });

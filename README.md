@@ -12,12 +12,12 @@ Project3 คือการเขียนใหม่ (rewrite) ของระ
 |---|---|---|
 | Frontend | PHP + HTML inline | React 19 + Vite + Tailwind v4 |
 | Backend | PHP + Apache (XAMPP) | Node.js + Express 5 |
-| Database | MySQL (XAMPP) | MySQL (XAMPP) — **ฐานข้อมูลเดิม** |
+| Database | MySQL (XAMPP), db `projectinformationsystem` | MySQL (XAMPP), db `project3` — **แยกฐานข้อมูลแล้ว** |
 | Auth | Session PHP | JWT (8 ชั่วโมง) |
 | UI | Bootstrap/ตาราง HTML | shadcn/ui + Tailwind CSS |
 | ไฟล์ PDF | `Project2/<ปี-ภาค>/<รหัส>.pdf` | คัดลอกไปยัง `backend/uploads/<ปี-ภาค>/` |
 
-Project3 เชื่อมต่อฐานข้อมูล `projectinformationsystem` ตัวเดิม ไม่มีการเปลี่ยนแปลง schema — สามารถสลับใช้ทั้งสองระบบได้ในระหว่างการเปลี่ยนผ่าน
+Project3 เดิมเชื่อมต่อฐานข้อมูล `projectinformationsystem` ร่วมกับ Project2 ระหว่างช่วงเปลี่ยนผ่าน แต่ตอนนี้แยกออกมาเป็นฐานข้อมูล `project3` ของตัวเองแล้ว (schema เหมือนกันทุกประการ, คัดลอกข้อมูล ณ วันที่แยกมาทั้งหมด) — การแก้ไขข้อมูลใน Project2 จากนี้ไปจะ**ไม่**สะท้อนมาที่ Project3 อีกต่อไป และในทางกลับกัน
 
 ---
 
@@ -52,7 +52,7 @@ PORT=5000
 DB_HOST=127.0.0.1
 DB_USER=root
 DB_PASSWORD=
-DB_NAME=projectinformationsystem
+DB_NAME=project3
 JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
 JWT_EXPIRES_IN=8h
 ```
@@ -66,14 +66,15 @@ npm install
 
 ### 4. นำเข้าฐานข้อมูล
 
-เปิด **XAMPP** แล้วสตาร์ท MySQL จากนั้น import schema:
+เปิด **XAMPP** แล้วสตาร์ท MySQL จากนั้นสร้างฐานข้อมูล `project3` (แยกจาก `projectinformationsystem` ของ Project2):
 
 ```bash
 # วิธีที่ 1: ผ่าน phpMyAdmin
-# เปิด http://localhost/phpmyadmin → สร้าง database ชื่อ projectinformationsystem → Import SQL
+# เปิด http://localhost/phpmyadmin → สร้าง database ชื่อ project3 → Import SQL
 
 # วิธีที่ 2: ผ่าน command line
-mysql -u root projectinformationsystem < c:/xampp/htdocs/Project2/projectinformationsystem.sql
+mysql -u root -e "CREATE DATABASE project3 CHARACTER SET utf8 COLLATE utf8_general_ci;"
+mysqldump -u root projectinformationsystem | mysql -u root project3
 ```
 
 ### 5. คัดลอกไฟล์ PDF จากระบบเดิม (ถ้ามี Project2)
@@ -295,17 +296,17 @@ sudo mysql -u root -p
 ```
 
 ```sql
-CREATE DATABASE projectinformationsystem CHARACTER SET utf8 COLLATE utf8_general_ci;
+CREATE DATABASE project3 CHARACTER SET utf8 COLLATE utf8_general_ci;
 CREATE USER 'project3'@'localhost' IDENTIFIED BY 'yourpassword';
-GRANT ALL PRIVILEGES ON projectinformationsystem.* TO 'project3'@'localhost';
+GRANT ALL PRIVILEGES ON project3.* TO 'project3'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
 ```
 
-นำเข้า schema และข้อมูล (export จาก Windows ก่อนด้วย phpMyAdmin หรือ mysqldump):
+นำเข้า schema และข้อมูล (export จาก Windows ก่อนด้วย phpMyAdmin หรือ mysqldump — export จากฐานข้อมูล `project3` บนเครื่อง dev ไม่ใช่ `projectinformationsystem` ของ Project2):
 
 ```bash
-mysql -u project3 -p projectinformationsystem < projectinformationsystem.sql
+mysql -u project3 -p project3 < project3.sql
 ```
 
 ### 3. โคลนและติดตั้งโปรเจกต์
